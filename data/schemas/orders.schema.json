@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Orders CSV Schema",
+  "type": "object",
+  "description": "Schema for orders.csv",
+  "properties": {
+    "order_id": {
+      "type": "string",
+      "description": "Unique identifier for the order"
+    },
+    "customer_id": {
+      "type": "string",
+      "description": "Unique identifier for the customer"
+    },
+    "order_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the order was placed"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Gross order amount"
+    },
+    "currency": {
+      "type": "string",
+      "enum": ["INR"],
+      "description": "Currency code (e.g., INR, USD)"
+    },
+    "status": {
+      "type": "string",
+      "description": "Status of the order"
+    }
+  },
+  "required": ["order_id", "customer_id", "order_date", "amount", "currency", "status"],
+  "additionalProperties": false
+}

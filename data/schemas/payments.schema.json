@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Payments CSV Schema",
+  "type": "object",
+  "description": "Schema for payments.csv",
+  "properties": {
+    "payment_id": {
+      "type": "string",
+      "description": "Unique identifier for the payment"
+    },
+    "order_id": {
+      "type": "string",
+      "description": "Identifier for the associated order (Foreign Key to orders.order_id)"
+    },
+    "payment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the payment occurred"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Amount captured in the payment"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Method of payment (e.g., UPI, CARD, NETBANKING)"
+    },
+    "status": {
+      "type": "string",
+      "description": "Status of the payment"
+    }
+  },
+  "required": ["payment_id", "order_id", "payment_date", "amount", "payment_method", "status"],
+  "additionalProperties": false
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bank Transactions CSV Schema",
+  "type": "object",
+  "description": "Schema for bank_transactions.csv",
+  "properties": {
+    "transaction_id": {
+      "type": "string",
+      "description": "Unique identifier for the bank transaction"
+    },
+    "payment_id": {
+      "type": "string",
+      "description": "Identifier for the associated payment (Foreign Key to payments.payment_id)"
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the transaction occurred at the bank"
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Amount credited/debited"
+    },
+    "transaction_type": {
+      "type": "string",
+      "description": "Type of transaction (e.g., CREDIT, DEBIT)"
+    },
+    "status": {
+      "type": "string",
+      "description": "Status of the bank transaction"
+    }
+  },
+  "required": ["transaction_id", "payment_id", "transaction_date", "amount", "transaction_type", "status"],
+  "additionalProperties": false
+}

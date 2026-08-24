@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ground Truth CSV Schema",
+  "type": "object",
+  "description": "Schema for ground_truth.csv",
+  "properties": {
+    "payment_id": {
+      "type": "string",
+      "description": "Identifier for the associated payment (Foreign Key to payments.payment_id)"
+    },
+    "expected_result": {
+      "type": "string",
+      "enum": ["MATCH", "EXCEPTION"],
+      "description": "Expected reconciliation result for this record"
+    },
+    "exception_type": {
+      "type": "string",
+      "enum": [
+        "NONE",
+        "AMOUNT_MISMATCH",
+        "MISSING_SETTLEMENT",
+        "DUPLICATE_TRANSACTION",
+        "DATE_ANOMALY",
+        "STATUS_MISMATCH"
+      ],
+      "description": "The specific type of exception if expected_result is EXCEPTION"
+    }
+  },
+  "required": ["payment_id", "expected_result", "exception_type"],
+  "additionalProperties": false
+}
