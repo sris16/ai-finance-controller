@@ -1,0 +1,51 @@
+# Environment & Secrets
+.env
+*.env.local
+*.env.development
+*.env.test
+
+# IDEs & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Node / Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+
+# Java / Maven / Backend
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+.mvn/wrapper/maven-wrapper.jar
+
+# Python / AI Service
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Docker / Database persistent data
+postgres_data/
+
+# OS Generated
+Thumbs.db
