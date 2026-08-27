@@ -107,11 +107,24 @@ In this phase, we have established:
 
 ### Option A: Run via Docker Compose
 ```bash
-docker-compose up --build
+docker compose up -d
 ```
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:8080/api/health`
-- AI Service API: `http://localhost:8000/health`
+- **Frontend**: `http://localhost:3000`
+- **Backend API**: `http://localhost:8080`
+- **AI Service API**: `http://localhost:8000`
+- **PostgreSQL**: `5433` (mapped to container `5432`)
+
+**Useful `curl` Commands:**
+```bash
+# Check backend health
+curl -s http://localhost:8080/api/health
+
+# Get reconciliation operational report
+curl -s http://localhost:8080/api/reconciliation/report
+
+# Retrieve all DATE_ANOMALY exceptions
+curl -s http://localhost:8080/api/reconciliation/exceptions/DATE_ANOMALY
+```
 
 ### Option B: Run Services Locally
 
@@ -144,6 +157,19 @@ docker-compose up --build
 
 ---
 
-## 6. License
+## 6. API Documentation
+
+The REST API is thoroughly documented in [`docs/api.md`](docs/api.md).
+
+It contains full specifications for:
+- Operational Reporting
+- Results Retrieval & Filtering
+- Exception Categorization
+- Error Contracts
+- Core JSON Response Models
+
+---
+
+## 7. License
 
 This project is licensed under the [MIT License](LICENSE).
