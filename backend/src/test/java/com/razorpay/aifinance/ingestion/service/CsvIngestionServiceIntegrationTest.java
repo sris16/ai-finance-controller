@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@SuppressWarnings("null")
 class CsvIngestionServiceIntegrationTest {
 
     private CsvIngestionService service;

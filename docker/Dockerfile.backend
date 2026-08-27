@@ -20,5 +20,8 @@ WORKDIR /app
 # Copy executable jar from builder stage
 COPY --from=builder /app/target/*.jar app.jar
 
+# Copy dataset for the reconciliation engine
+COPY data ./data
+
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

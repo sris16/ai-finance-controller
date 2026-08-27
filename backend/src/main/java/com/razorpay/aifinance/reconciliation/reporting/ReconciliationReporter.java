@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("null")
 public class ReconciliationReporter {
 
     public ReconciliationReport generateReport(List<ReconciliationResult> results) {
@@ -25,7 +26,7 @@ public class ReconciliationReporter {
 
         // Sort by PaymentId to ensure deterministic reporting order
         List<ReconciliationResult> sortedResults = results.stream()
-                .sorted(Comparator.comparing(ReconciliationResult::getPaymentId))
+                .sorted(Comparator.comparing(r -> r.getPaymentId()))
                 .collect(Collectors.toList());
 
         report.setReconciliationResults(sortedResults);

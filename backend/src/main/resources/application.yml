@@ -30,3 +30,7 @@ logging:
   level:
     root: INFO
     com.razorpay.aifinance: DEBUG
+
+app:
+  data:
+    path: ${DATA_PATH:../data}
