@@ -14,9 +14,11 @@ import java.util.List;
 public class ReconciliationController {
 
     private final ReconciliationService reconciliationService;
+    private final com.razorpay.aifinance.ai.service.AiIntegrationService aiIntegrationService;
 
-    public ReconciliationController(ReconciliationService reconciliationService) {
+    public ReconciliationController(ReconciliationService reconciliationService, com.razorpay.aifinance.ai.service.AiIntegrationService aiIntegrationService) {
         this.reconciliationService = reconciliationService;
+        this.aiIntegrationService = aiIntegrationService;
     }
 
     @GetMapping("/report")
@@ -44,5 +46,11 @@ public class ReconciliationController {
     @GetMapping("/exceptions/{exceptionType}")
     public List<ReconciliationResult> getExceptionsByType(@PathVariable ExceptionType exceptionType) {
         return reconciliationService.getAllResults(ReconciliationStatus.EXCEPTION, exceptionType);
+    }
+
+    @GetMapping("/results/{paymentId}/explanation")
+    public com.razorpay.aifinance.ai.dto.ReconciliationExplanationResponse getExplanation(@PathVariable String paymentId) {
+        ReconciliationResult result = reconciliationService.getResultByPaymentId(paymentId);
+        return aiIntegrationService.generateExplanation(result);
     }
 }

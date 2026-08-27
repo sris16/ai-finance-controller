@@ -29,6 +29,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse("Invalid parameter value: " + ex.getValue(), HttpStatus.BAD_REQUEST, request);
     }
 
+    @ExceptionHandler(AiServiceUnavailableException.class)
+    public ResponseEntity<Object> handleAiServiceUnavailableException(AiServiceUnavailableException ex, WebRequest request) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.SERVICE_UNAVAILABLE, request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex, WebRequest request) {
         return buildErrorResponse("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR, request);
