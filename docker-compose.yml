@@ -46,7 +46,8 @@ services:
     ports:
       - "${AI_SERVICE_PORT:-8000}:8000"
     environment:
-      AI_API_KEY: ${AI_API_KEY:-placeholder_key}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
 
   frontend:
     build:

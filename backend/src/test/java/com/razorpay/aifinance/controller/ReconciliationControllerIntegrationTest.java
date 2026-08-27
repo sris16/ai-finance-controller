@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {"app.data.path=../data"})
 @AutoConfigureMockMvc
-@org.springframework.boot.test.autoconfigure.web.client.AutoConfigureMockRestServiceServer
+@org.springframework.context.annotation.Import(ReconciliationControllerIntegrationTest.AiServiceMockConfig.class)
 @SuppressWarnings("null")
 class ReconciliationControllerIntegrationTest {
 
@@ -101,23 +101,33 @@ class ReconciliationControllerIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    @Autowired
-    private org.springframework.test.web.client.MockRestServiceServer mockServer;
-
-    @Autowired
-    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    @org.springframework.boot.test.context.TestConfiguration
+    static class AiServiceMockConfig {
+        @org.springframework.context.annotation.Bean
+        @org.springframework.context.annotation.Primary
+        public com.razorpay.aifinance.ai.client.AiServiceClient mockAiServiceClient() {
+            return new com.razorpay.aifinance.ai.client.AiServiceClient("http://localhost:8000", org.springframework.web.client.RestClient.builder()) {
+                @Override
+                public com.razorpay.aifinance.ai.dto.AiExplanationResponse getExplanation(com.razorpay.aifinance.ai.dto.AiExplanationRequest request) {
+                    com.razorpay.aifinance.ai.dto.AiExplanationResponse mockResponse = new com.razorpay.aifinance.ai.dto.AiExplanationResponse();
+                    mockResponse.setPaymentId(request.getPaymentId());
+                    if ("PAY0004".equals(request.getPaymentId())) {
+                        mockResponse.setSummary("Duplicate Bank Transactions Detected");
+                        mockResponse.setReasoning("Found 2 transactions");
+                        mockResponse.setRecommendedAction("Reverse duplicates");
+                    } else if ("PAY0001".equals(request.getPaymentId())) {
+                        mockResponse.setSummary("Transaction fully reconciled successfully.");
+                        mockResponse.setReasoning("Matches perfectly.");
+                        mockResponse.setRecommendedAction("No action required.");
+                    }
+                    return mockResponse;
+                }
+            };
+        }
+    }
 
     @Test
     void testGetExplanationException() throws Exception {
-        com.razorpay.aifinance.ai.dto.AiExplanationResponse mockResponse = new com.razorpay.aifinance.ai.dto.AiExplanationResponse();
-        mockResponse.setPaymentId("PAY0004");
-        mockResponse.setSummary("Duplicate Bank Transactions Detected");
-        mockResponse.setReasoning("Found 2 transactions");
-        mockResponse.setRecommendedAction("Reverse duplicates");
-
-        mockServer.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo("http://localhost:8000/api/explain"))
-                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess(objectMapper.writeValueAsString(mockResponse), MediaType.APPLICATION_JSON));
-
         mockMvc.perform(get("/api/reconciliation/results/PAY0004/explanation")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -125,21 +135,10 @@ class ReconciliationControllerIntegrationTest {
                 .andExpect(jsonPath("$.overallStatus", is(ExceptionType.DUPLICATE_TRANSACTION.name().equals("DUPLICATE_TRANSACTION") ? "EXCEPTION" : "EXCEPTION")))
                 .andExpect(jsonPath("$.exceptionType", is("DUPLICATE_TRANSACTION")))
                 .andExpect(jsonPath("$.explanation.summary", is("Duplicate Bank Transactions Detected")));
-        
-        mockServer.reset();
     }
 
     @Test
     void testGetExplanationMatch() throws Exception {
-        com.razorpay.aifinance.ai.dto.AiExplanationResponse mockResponse = new com.razorpay.aifinance.ai.dto.AiExplanationResponse();
-        mockResponse.setPaymentId("PAY0001");
-        mockResponse.setSummary("Transaction fully reconciled successfully.");
-        mockResponse.setReasoning("Matches perfectly.");
-        mockResponse.setRecommendedAction("No action required.");
-
-        mockServer.expect(org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo("http://localhost:8000/api/explain"))
-                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess(objectMapper.writeValueAsString(mockResponse), MediaType.APPLICATION_JSON));
-
         mockMvc.perform(get("/api/reconciliation/results/PAY0001/explanation")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -147,7 +146,5 @@ class ReconciliationControllerIntegrationTest {
                 .andExpect(jsonPath("$.overallStatus", is("MATCH")))
                 .andExpect(jsonPath("$.exceptionType", is("NONE")))
                 .andExpect(jsonPath("$.explanation.summary", is("Transaction fully reconciled successfully.")));
-        
-        mockServer.reset();
     }
 }
