@@ -1,0 +1,13 @@
+from enum import Enum
+
+class ReconciliationStatus(str, Enum):
+    MATCH = "MATCH"
+    EXCEPTION = "EXCEPTION"
+
+class ExceptionType(str, Enum):
+    NONE = "NONE"
+    AMOUNT_MISMATCH = "AMOUNT_MISMATCH"
+    MISSING_SETTLEMENT = "MISSING_SETTLEMENT"
+    DUPLICATE_TRANSACTION = "DUPLICATE_TRANSACTION"
+    DATE_ANOMALY = "DATE_ANOMALY"
+    STATUS_MISMATCH = "STATUS_MISMATCH"
