@@ -38,26 +38,39 @@ public class ReconciliationEvaluator {
                 metrics.incrementExceptionCount();
             }
 
-            boolean isCorrect = true;
+            boolean isOverallMatchCorrect = true;
 
-            // Check overall MATCH / EXCEPTION equality
-            if ((result.getOverallStatus() == ReconciliationStatus.MATCH && gt.getExpectedResult() != ExpectedResult.MATCH) ||
-                (result.getOverallStatus() == ReconciliationStatus.EXCEPTION && gt.getExpectedResult() != ExpectedResult.EXCEPTION)) {
-                isCorrect = false;
+            // Confusion Matrix and Overall Accuracy
+            if (result.getOverallStatus() == ReconciliationStatus.MATCH && gt.getExpectedResult() == ExpectedResult.MATCH) {
+                metrics.incrementTrueMatches();
+            } else if (result.getOverallStatus() == ReconciliationStatus.MATCH && gt.getExpectedResult() == ExpectedResult.EXCEPTION) {
+                metrics.incrementFalseMatches();
+                isOverallMatchCorrect = false;
+            } else if (result.getOverallStatus() == ReconciliationStatus.EXCEPTION && gt.getExpectedResult() == ExpectedResult.MATCH) {
+                metrics.incrementFalseExceptions();
+                isOverallMatchCorrect = false;
+            } else if (result.getOverallStatus() == ReconciliationStatus.EXCEPTION && gt.getExpectedResult() == ExpectedResult.EXCEPTION) {
+                metrics.incrementTrueExceptions();
             }
 
-            // Check specific exception type if it's an exception
-            if (result.getOverallStatus() == ReconciliationStatus.EXCEPTION) {
-                if (result.getExceptionType() != gt.getExceptionType()) {
-                    isCorrect = false;
-                }
-            }
-
-            if (isCorrect) {
+            if (isOverallMatchCorrect) {
                 metrics.incrementCorrectClassifications();
             } else {
                 metrics.incrementIncorrectClassifications();
                 metrics.addMismatch(result.getPaymentId(), result.getExceptionType(), gt.getExceptionType());
+            }
+
+            // Exception Type Evaluation (only applies to records expected to be exceptions)
+            if (gt.getExpectedResult() == ExpectedResult.EXCEPTION) {
+                if (result.getOverallStatus() == ReconciliationStatus.EXCEPTION && result.getExceptionType() == gt.getExceptionType()) {
+                    metrics.incrementCorrectExceptionTypeClassifications();
+                } else {
+                    metrics.incrementIncorrectExceptionTypeClassifications();
+                    // We only add mismatch if we didn't already add it above
+                    if (isOverallMatchCorrect) { 
+                         metrics.addMismatch(result.getPaymentId(), result.getExceptionType(), gt.getExceptionType());
+                    }
+                }
             }
         }
 
@@ -65,6 +78,13 @@ public class ReconciliationEvaluator {
             metrics.setAccuracy((double) metrics.getCorrectClassifications() / metrics.getTotalRecords());
         } else {
             metrics.setAccuracy(0.0);
+        }
+
+        int totalExpectedExceptions = metrics.getTrueExceptions() + metrics.getFalseMatches();
+        if (totalExpectedExceptions > 0) {
+            metrics.setExceptionTypeAccuracy((double) metrics.getCorrectExceptionTypeClassifications() / totalExpectedExceptions);
+        } else {
+            metrics.setExceptionTypeAccuracy(0.0);
         }
 
         return metrics;
@@ -79,10 +99,29 @@ public class ReconciliationEvaluator {
         private double accuracy = 0.0;
         private Map<String, String> discrepancies = new HashMap<>();
 
+        // Exception specific metrics
+        private int correctExceptionTypeClassifications = 0;
+        private int incorrectExceptionTypeClassifications = 0;
+        private double exceptionTypeAccuracy = 0.0;
+
+        // Confusion Matrix style counts
+        private int trueMatches = 0; // Expected MATCH -> Actual MATCH
+        private int falseExceptions = 0; // Expected MATCH -> Actual EXCEPTION
+        private int falseMatches = 0; // Expected EXCEPTION -> Actual MATCH
+        private int trueExceptions = 0; // Expected EXCEPTION -> Actual EXCEPTION
+
         public void incrementMatchCount() { matchCount++; }
         public void incrementExceptionCount() { exceptionCount++; }
         public void incrementCorrectClassifications() { correctClassifications++; }
         public void incrementIncorrectClassifications() { incorrectClassifications++; }
+
+        public void incrementCorrectExceptionTypeClassifications() { correctExceptionTypeClassifications++; }
+        public void incrementIncorrectExceptionTypeClassifications() { incorrectExceptionTypeClassifications++; }
+
+        public void incrementTrueMatches() { trueMatches++; }
+        public void incrementFalseExceptions() { falseExceptions++; }
+        public void incrementFalseMatches() { falseMatches++; }
+        public void incrementTrueExceptions() { trueExceptions++; }
 
         public void addMismatch(String paymentId, ExceptionType engineException, ExceptionType gtException) {
             String engineStr = engineException != null ? engineException.name() : "MATCH";
@@ -100,5 +139,15 @@ public class ReconciliationEvaluator {
         public double getAccuracy() { return accuracy; }
         public void setAccuracy(double accuracy) { this.accuracy = accuracy; }
         public Map<String, String> getDiscrepancies() { return discrepancies; }
+
+        public int getCorrectExceptionTypeClassifications() { return correctExceptionTypeClassifications; }
+        public int getIncorrectExceptionTypeClassifications() { return incorrectExceptionTypeClassifications; }
+        public double getExceptionTypeAccuracy() { return exceptionTypeAccuracy; }
+        public void setExceptionTypeAccuracy(double exceptionTypeAccuracy) { this.exceptionTypeAccuracy = exceptionTypeAccuracy; }
+
+        public int getTrueMatches() { return trueMatches; }
+        public int getFalseExceptions() { return falseExceptions; }
+        public int getFalseMatches() { return falseMatches; }
+        public int getTrueExceptions() { return trueExceptions; }
     }
 }
