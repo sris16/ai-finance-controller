@@ -31,20 +31,23 @@ class ReconciliationServiceInitializationTest {
     @Mock
     private ReconciliationRunRepository runRepository;
 
+    @Mock
+    private com.razorpay.aifinance.repository.ReconciliationDatasetRepository datasetRepository;
+
     private ReconciliationService service;
     private java.util.concurrent.Executor executor = Runnable::run;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        service = new ReconciliationService(csvIngestionService, engine, reporter, repository, runRepository, executor);
+        service = new ReconciliationService(csvIngestionService, engine, reporter, runRepository, repository, datasetRepository, "src/test/resources/data", "src/test/resources/datasets", executor);
     }
 
     @Test
     void testExecuteReconciliationRun_ThrowsIfInProgress() {
         when(runRepository.existsByStatus(com.razorpay.aifinance.domain.enums.RunStatus.IN_PROGRESS)).thenReturn(true);
         try {
-            service.executeReconciliationRun();
+            service.executeReconciliationRun(null);
             org.junit.jupiter.api.Assertions.fail("Expected ConcurrentExecutionException");
         } catch (com.razorpay.aifinance.exception.ConcurrentExecutionException e) {
             // expected
@@ -63,7 +66,7 @@ class ReconciliationServiceInitializationTest {
         when(csvIngestionService.loadDataset(any())).thenReturn(new FinancialDataset());
         when(engine.reconcile(any())).thenReturn(List.of(new com.razorpay.aifinance.domain.model.ReconciliationResult()));
 
-        service.executeReconciliationRun();
+        service.executeReconciliationRun(null);
 
         verify(csvIngestionService, times(1)).loadDataset(any());
         verify(engine, times(1)).reconcile(any());
@@ -82,7 +85,7 @@ class ReconciliationServiceInitializationTest {
         when(runRepository.findById("test-run-id")).thenReturn(java.util.Optional.of(new ReconciliationRunEntity()));
         when(csvIngestionService.loadDataset(any())).thenThrow(new RuntimeException("Ingestion failed"));
 
-        service.executeReconciliationRun();
+        service.executeReconciliationRun(null);
 
         verify(csvIngestionService, times(1)).loadDataset(any());
         verify(engine, never()).reconcile(any());

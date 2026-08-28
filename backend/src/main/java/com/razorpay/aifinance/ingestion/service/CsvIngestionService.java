@@ -39,11 +39,19 @@ public class CsvIngestionService {
         }
 
         FinancialDataset dataset = new FinancialDataset();
+        // REQUIRED
         dataset.setOrders(loadOrders(rootPath.resolve("orders.csv")));
         dataset.setPayments(loadPayments(rootPath.resolve("payments.csv")));
-        dataset.setSettlements(loadSettlements(rootPath.resolve("settlements.csv")));
-        dataset.setBankTransactions(loadBankTransactions(rootPath.resolve("bank_transactions.csv")));
-        dataset.setGroundTruths(loadGroundTruth(rootPath.resolve("ground_truth.csv")));
+
+        // OPTIONAL
+        Path settlementsPath = rootPath.resolve("settlements.csv");
+        dataset.setSettlements(Files.exists(settlementsPath) ? loadSettlements(settlementsPath) : new java.util.ArrayList<>());
+
+        Path bankTxPath = rootPath.resolve("bank_transactions.csv");
+        dataset.setBankTransactions(Files.exists(bankTxPath) ? loadBankTransactions(bankTxPath) : new java.util.ArrayList<>());
+
+        Path gtPath = rootPath.resolve("ground_truth.csv");
+        dataset.setGroundTruths(Files.exists(gtPath) ? loadGroundTruth(gtPath) : new java.util.ArrayList<>());
 
         return dataset;
     }

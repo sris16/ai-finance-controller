@@ -39,6 +39,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex.getMessage(), HttpStatus.CONFLICT, request);
     }
 
+    @ExceptionHandler(DatasetUploadException.class)
+    public ResponseEntity<Object> handleDatasetUploadException(DatasetUploadException ex, WebRequest request) {
+        return buildErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST, request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGeneralException(Exception ex, WebRequest request) {
         return buildErrorResponse("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR, request);

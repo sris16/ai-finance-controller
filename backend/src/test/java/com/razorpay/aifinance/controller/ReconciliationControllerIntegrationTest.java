@@ -30,7 +30,7 @@ class ReconciliationControllerIntegrationTest {
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
         if (runRepository.count() == 0) {
-            reconciliationService.executeReconciliationRun();
+            reconciliationService.executeReconciliationRun(null);
             while (!runRepository.existsByStatus(com.razorpay.aifinance.domain.enums.RunStatus.COMPLETED)) {
                 try {
                     Thread.sleep(100);

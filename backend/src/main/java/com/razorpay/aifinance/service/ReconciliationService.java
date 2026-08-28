@@ -17,6 +17,7 @@ import com.razorpay.aifinance.repository.ReconciliationRunRepository;
 import com.razorpay.aifinance.exception.ConcurrentExecutionException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Page;
@@ -41,49 +42,63 @@ public class ReconciliationService {
 
     private final ReconciliationResultRepository repository;
     private final ReconciliationRunRepository runRepository;
+    private final com.razorpay.aifinance.repository.ReconciliationDatasetRepository datasetRepository;
+    private final String dataPath;
+    private final String datasetsPath;
     private final Executor executor;
     private static final Logger logger = LoggerFactory.getLogger(ReconciliationService.class);
 
-    @Value("${app.data.path}")
-    private String dataPath;
-
-    public ReconciliationService(CsvIngestionService csvIngestionService,
-                                 DeterministicReconciliationEngine engine,
-                                 ReconciliationReporter reporter,
-                                 ReconciliationResultRepository repository,
-                                 ReconciliationRunRepository runRepository,
-                                 @Qualifier("reconciliationTaskExecutor") Executor executor) {
+    public ReconciliationService(
+            CsvIngestionService csvIngestionService,
+            DeterministicReconciliationEngine engine,
+            ReconciliationReporter reporter,
+            ReconciliationRunRepository runRepository,
+            ReconciliationResultRepository repository,
+            com.razorpay.aifinance.repository.ReconciliationDatasetRepository datasetRepository,
+            @Value("${app.data.path}") String dataPath,
+            @Value("${app.datasets.path:data/datasets}") String datasetsPath,
+            @Qualifier("reconciliationTaskExecutor") Executor executor) {
         this.csvIngestionService = csvIngestionService;
         this.engine = engine;
         this.reporter = reporter;
-        this.repository = repository;
         this.runRepository = runRepository;
+        this.repository = repository;
+        this.datasetRepository = datasetRepository;
+        this.dataPath = dataPath;
+        this.datasetsPath = datasetsPath;
         this.executor = executor;
     }
 
-    public synchronized ReconciliationRunEntity executeReconciliationRun() {
+    public synchronized ReconciliationRunEntity executeReconciliationRun(String datasetId) {
         if (runRepository.existsByStatus(RunStatus.IN_PROGRESS)) {
-            throw new ConcurrentExecutionException("A reconciliation run is already in progress.");
+            throw new ConcurrentExecutionException("A reconciliation batch is already IN_PROGRESS. Please wait for it to complete.");
+        }
+
+        if (datasetId != null && !datasetRepository.existsById(datasetId)) {
+            throw new com.razorpay.aifinance.exception.ResourceNotFoundException("Dataset not found with ID: " + datasetId);
         }
 
         ReconciliationRunEntity run = new ReconciliationRunEntity();
         run.setExecutionTime(Instant.now());
         run.setStatus(RunStatus.IN_PROGRESS);
+        run.setDatasetId(datasetId);
         run = runRepository.save(run);
 
         final String runId = run.getId();
-        executor.execute(() -> processReconciliationRun(runId));
+        executor.execute(() -> processReconciliationAsync(runId, datasetId));
 
         return run;
     }
 
-    private void processReconciliationRun(String runId) {
-        logger.info("Starting Async Run [{}]", runId);
+    @Async
+    public void processReconciliationAsync(String runId, String datasetId) {
+        logger.info("Starting Async Reconciliation for Run [{}] using Dataset [{}]", runId, datasetId != null ? datasetId : "LEGACY");
         ReconciliationRunEntity run = runRepository.findById(runId)
                 .orElseThrow(() -> new IllegalStateException("Run not found: " + runId));
 
         try {
-            FinancialDataset dataset = csvIngestionService.loadDataset(dataPath);
+            String targetPath = datasetId == null ? dataPath : java.nio.file.Paths.get(datasetsPath).toAbsolutePath().normalize().resolve(datasetId).toString();
+            FinancialDataset dataset = csvIngestionService.loadDataset(targetPath);
             List<ReconciliationResult> results = engine.reconcile(dataset);
 
             final ReconciliationRunEntity finalRun = run;

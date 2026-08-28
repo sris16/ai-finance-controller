@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, MenuItem, Select, FormControl, InputLabel, Chip, CircularProgress, Alert, TablePagination, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { getReconciliationResults, getReconciliationRuns, triggerReconciliationRun } from '../services/api';
+import { getReconciliationResults, getReconciliationRuns } from '../services/api';
 import { ReconciliationResult, ExceptionType, ReconciliationRun } from '../types/api';
+import { DatasetUploadModal } from '../components/reconciliation/DatasetUploadModal';
 
 export const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
+  const [modalOpen, setModalOpen] = useState(false);
   const [results, setResults] = useState<ReconciliationResult[]>([]);
   const [runs, setRuns] = useState<ReconciliationRun[]>([]);
   const [selectedRunId, setSelectedRunId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
-  const [triggering, setTriggering] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -48,17 +49,9 @@ export const ResultsPage: React.FC = () => {
     }
   };
 
-  const handleTriggerRun = async () => {
-    setTriggering(true);
-    try {
-      const newRun = await triggerReconciliationRun();
-      await fetchRuns();
-      setSelectedRunId(newRun.id);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to trigger run');
-    } finally {
-      setTriggering(false);
-    }
+  const handleRunStarted = async (newRunId: string) => {
+    await fetchRuns();
+    setSelectedRunId(newRunId);
   };
 
   useEffect(() => {
@@ -102,10 +95,10 @@ export const ResultsPage: React.FC = () => {
         <Button
           variant="contained"
           color="primary"
-          onClick={handleTriggerRun}
-          disabled={triggering || runs.some(r => r.status === 'IN_PROGRESS')}
+          onClick={() => setModalOpen(true)}
+          disabled={runs.some(r => r.status === 'IN_PROGRESS')}
         >
-          {triggering ? <CircularProgress size={24} /> : 'Trigger New Batch'}
+          {runs.some(r => r.status === 'IN_PROGRESS') ? <CircularProgress size={24} /> : 'Trigger New Batch'}
         </Button>
       </Box>
 
@@ -233,6 +226,12 @@ export const ResultsPage: React.FC = () => {
           rowsPerPageOptions={[5, 10, 20, 50, 100]}
         />
       </TableContainer>
+
+      <DatasetUploadModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onRunStarted={handleRunStarted}
+      />
     </Box>
   );
 };

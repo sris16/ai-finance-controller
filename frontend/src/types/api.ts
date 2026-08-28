@@ -102,4 +102,11 @@ export interface ReconciliationRun {
   executionTime: string;
   status: RunStatus;
   totalRecords: number;
+  datasetId?: string;
+}
+
+export interface DatasetResponse {
+  id: string;
+  name: string;
+  uploadedAt: string;
 }

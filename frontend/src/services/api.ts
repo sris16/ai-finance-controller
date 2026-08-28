@@ -74,7 +74,31 @@ export const getReconciliationRuns = async (): Promise<any> => {
   return response.data;
 };
 
-export const triggerReconciliationRun = async (): Promise<any> => {
-  const response = await backendClient.post('/api/reconciliation/runs');
+export const triggerReconciliationRun = async (datasetId?: string): Promise<any> => {
+  const params: any = {};
+  if (datasetId) params.datasetId = datasetId;
+  const response = await backendClient.post('/api/reconciliation/runs', null, { params });
+  return response.data;
+};
+
+export const getDatasets = async (): Promise<any> => {
+  const response = await backendClient.get('/api/datasets');
+  return response.data;
+};
+
+export const uploadDataset = async (name: string, orders: File, payments: File, settlements?: File, bankTransactions?: File): Promise<any> => {
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('orders', orders);
+  formData.append('payments', payments);
+  if (settlements) formData.append('settlements', settlements);
+  if (bankTransactions) formData.append('bankTransactions', bankTransactions);
+
+  const response = await backendClient.post('/api/datasets', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 30000, // Longer timeout for file uploads
+  });
   return response.data;
 };

@@ -28,8 +28,8 @@ public class ReconciliationController {
 
     @PostMapping("/runs")
     @ResponseStatus(HttpStatus.CREATED)
-    public ReconciliationRunEntity triggerRun() {
-        return reconciliationService.executeReconciliationRun();
+    public ReconciliationRunEntity triggerRun(@RequestParam(required = false) String datasetId) {
+        return reconciliationService.executeReconciliationRun(datasetId);
     }
 
     @GetMapping("/runs")
