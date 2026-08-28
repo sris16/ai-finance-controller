@@ -56,7 +56,7 @@ export const ResultDetailsPage: React.FC = () => {
           <Box sx={{ display: 'flex', gap: 2, mt: 1, alignItems: 'center' }}>
             <Typography variant="h6" color="text.primary">Status:</Typography>
             <Chip label={result.overallStatus} color={result.overallStatus === 'MATCH' ? 'success' : 'error'} sx={{ fontWeight: 700 }} />
-            
+
             {result.exceptionType !== 'NONE' && (
               <>
                 <Typography variant="h6" color="text.primary" sx={{ ml: 2 }}>Exception:</Typography>

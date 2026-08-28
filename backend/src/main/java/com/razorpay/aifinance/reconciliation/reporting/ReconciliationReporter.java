@@ -17,53 +17,32 @@ import java.util.stream.Collectors;
 @SuppressWarnings("null")
 public class ReconciliationReporter {
 
-    public ReconciliationReport generateReport(List<ReconciliationResult> results) {
+    public ReconciliationReport generateReport(int totalRecords, int matchedRecords, int exceptionRecords, Map<ExceptionType, Integer> exceptionBreakdown) {
         ReconciliationReport report = new ReconciliationReport();
-        
-        if (results == null || results.isEmpty()) {
+
+        if (totalRecords == 0) {
             return report; // Defaults handle 0 appropriately
         }
 
-        // Sort by PaymentId to ensure deterministic reporting order
-        List<ReconciliationResult> sortedResults = results.stream()
-                .sorted(Comparator.comparing(r -> r.getPaymentId()))
-                .collect(Collectors.toList());
+        report.setTotalRecords(totalRecords);
+        report.setMatchedRecords(matchedRecords);
+        report.setExceptionRecords(exceptionRecords);
 
-        report.setReconciliationResults(sortedResults);
-        report.setTotalRecords(sortedResults.size());
-
-        int matched = 0;
-        int exceptions = 0;
-        
         Map<ExceptionType, Integer> breakdown = new EnumMap<>(ExceptionType.class);
 
         // Initialize map with all exception types for completeness, except NONE
         for (ExceptionType type : ExceptionType.values()) {
             if (type != ExceptionType.NONE) {
-                breakdown.put(type, 0);
+                breakdown.put(type, exceptionBreakdown.getOrDefault(type, 0));
             }
         }
 
-        for (ReconciliationResult result : sortedResults) {
-            if (result.getOverallStatus() == ReconciliationStatus.MATCH) {
-                matched++;
-            } else {
-                exceptions++;
-                ExceptionType type = result.getExceptionType();
-                if (type != null && type != ExceptionType.NONE) {
-                    breakdown.put(type, breakdown.getOrDefault(type, 0) + 1);
-                }
-            }
-        }
-
-        report.setMatchedRecords(matched);
-        report.setExceptionRecords(exceptions);
         report.setExceptionBreakdown(breakdown);
 
         // Calculate rates using BigDecimal for precise financial percentages
         BigDecimal total = BigDecimal.valueOf(report.getTotalRecords());
-        BigDecimal matches = BigDecimal.valueOf(matched);
-        BigDecimal ex = BigDecimal.valueOf(exceptions);
+        BigDecimal matches = BigDecimal.valueOf(matchedRecords);
+        BigDecimal ex = BigDecimal.valueOf(exceptionRecords);
         BigDecimal hundred = BigDecimal.valueOf(100);
 
         // Calculate (matched / total) * 100 with 2 decimal places

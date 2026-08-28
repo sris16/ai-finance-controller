@@ -23,11 +23,11 @@ class CsvIngestionServiceIntegrationTest {
     void testLoadRealDataset() {
         // The data directory is located one level up from the backend directory
         String datasetPath = "../data";
-        
+
         FinancialDataset dataset = service.loadDataset(datasetPath);
 
         assertNotNull(dataset);
-        
+
         // 1. Verify exact counts based on requirements
         assertEquals(100, dataset.getOrders().size(), "Orders count should be 100");
         assertEquals(100, dataset.getPayments().size(), "Payments count should be 100");
@@ -59,7 +59,7 @@ class CsvIngestionServiceIntegrationTest {
         Set<String> uniqueBankTxPaymentIds = dataset.getBankTransactions().stream()
                 .map(BankTransactionRecord::getPaymentId)
                 .collect(Collectors.toSet());
-        
+
         // There are 100 bank transactions, but 4 are duplicates for the same payment ID.
         // Therefore, there should be fewer than 100 unique payment IDs.
         assertTrue(uniqueBankTxPaymentIds.size() < 100, "There should be duplicate bank transactions (multiple rows for the same payment ID).");

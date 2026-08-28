@@ -9,6 +9,7 @@ import com.razorpay.aifinance.reconciliation.evaluation.ReconciliationEvaluator;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 
@@ -21,14 +22,26 @@ class ReconciliationReportingIntegrationTest {
         // 1. Ingestion
         CsvIngestionService ingestionService = new CsvIngestionService();
         FinancialDataset dataset = ingestionService.loadDataset("../data");
-        
+
         // 2. Engine
         DeterministicReconciliationEngine engine = new DeterministicReconciliationEngine();
         List<ReconciliationResult> results = engine.reconcile(dataset);
 
         // 3. Operational Reporting
         ReconciliationReporter reporter = new ReconciliationReporter();
-        ReconciliationReport report = reporter.generateReport(results);
+
+        int total = results.size();
+        int matched = (int) results.stream().filter(r -> r.getOverallStatus() == com.razorpay.aifinance.domain.enums.ReconciliationStatus.MATCH).count();
+        int exceptions = total - matched;
+
+        Map<ExceptionType, Integer> testBreakdown = new EnumMap<>(ExceptionType.class);
+        for (ReconciliationResult r : results) {
+            if (r.getOverallStatus() == com.razorpay.aifinance.domain.enums.ReconciliationStatus.EXCEPTION && r.getExceptionType() != null && r.getExceptionType() != ExceptionType.NONE) {
+                testBreakdown.put(r.getExceptionType(), testBreakdown.getOrDefault(r.getExceptionType(), 0) + 1);
+            }
+        }
+
+        ReconciliationReport report = reporter.generateReport(total, matched, exceptions, testBreakdown);
 
         // Verify Operational Report
         assertEquals(100, report.getTotalRecords());
@@ -60,7 +73,7 @@ class ReconciliationReportingIntegrationTest {
                 System.out.println("  - " + entry.getKey() + ": " + entry.getValue());
             }
         }
-        
+
         System.out.println("\n==================================================");
         System.out.println("GROUND-TRUTH EVALUATION METRICS");
         System.out.println("==================================================");

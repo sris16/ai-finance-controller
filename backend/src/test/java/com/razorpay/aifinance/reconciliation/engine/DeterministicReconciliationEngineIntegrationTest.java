@@ -19,7 +19,7 @@ class DeterministicReconciliationEngineIntegrationTest {
         // 1. Ingest Dataset
         CsvIngestionService ingestionService = new CsvIngestionService();
         FinancialDataset dataset = ingestionService.loadDataset("../data");
-        
+
         assertNotNull(dataset);
         assertEquals(100, dataset.getPayments().size());
 
@@ -42,7 +42,7 @@ class DeterministicReconciliationEngineIntegrationTest {
         System.out.println("Correct Classifications  : " + metrics.getCorrectClassifications());
         System.out.println("Incorrect Classifications: " + metrics.getIncorrectClassifications());
         System.out.println("Accuracy                 : " + String.format("%.2f%%", metrics.getAccuracy() * 100));
-        
+
         if (!metrics.getDiscrepancies().isEmpty()) {
             System.out.println("\nDiscrepancies:");
             for (Map.Entry<String, String> entry : metrics.getDiscrepancies().entrySet()) {
@@ -51,7 +51,7 @@ class DeterministicReconciliationEngineIntegrationTest {
         }
         System.out.println("==================================================");
 
-        // We assert accuracy as a benchmark. 
+        // We assert accuracy as a benchmark.
         // As per instructions, DO NOT FORCE the result. Just let it run.
         // If it's not 100%, we report it honestly in the final output.
     }

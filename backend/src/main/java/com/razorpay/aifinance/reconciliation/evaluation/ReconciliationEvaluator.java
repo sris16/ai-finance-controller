@@ -66,7 +66,7 @@ public class ReconciliationEvaluator {
                 } else {
                     metrics.incrementIncorrectExceptionTypeClassifications();
                     // We only add mismatch if we didn't already add it above
-                    if (isOverallMatchCorrect) { 
+                    if (isOverallMatchCorrect) {
                          metrics.addMismatch(result.getPaymentId(), result.getExceptionType(), gt.getExceptionType());
                     }
                 }

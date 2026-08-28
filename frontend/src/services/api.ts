@@ -35,8 +35,16 @@ export const getReconciliationReport = async (): Promise<any> => {
   return response.data;
 };
 
-export const getReconciliationResults = async (status?: string, exceptionType?: string): Promise<any[]> => {
-  const params: any = {};
+export interface PaginatedResponse<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export const getReconciliationResults = async (status?: string, exceptionType?: string, page = 0, size = 20): Promise<PaginatedResponse<any>> => {
+  const params: any = { page, size };
   if (status && status !== 'ALL') params.status = status;
   if (exceptionType && exceptionType !== 'ALL') params.exceptionType = exceptionType;
 

@@ -18,11 +18,9 @@ public class ReconciliationReport {
     private BigDecimal exceptionRate;
 
     private Map<ExceptionType, Integer> exceptionBreakdown;
-    private List<ReconciliationResult> reconciliationResults;
 
     public ReconciliationReport() {
         this.exceptionBreakdown = Collections.emptyMap();
-        this.reconciliationResults = Collections.emptyList();
         this.matchRate = BigDecimal.ZERO;
         this.exceptionRate = BigDecimal.ZERO;
     }
@@ -44,7 +42,4 @@ public class ReconciliationReport {
 
     public Map<ExceptionType, Integer> getExceptionBreakdown() { return exceptionBreakdown; }
     public void setExceptionBreakdown(Map<ExceptionType, Integer> exceptionBreakdown) { this.exceptionBreakdown = exceptionBreakdown; }
-
-    public List<ReconciliationResult> getReconciliationResults() { return reconciliationResults; }
-    public void setReconciliationResults(List<ReconciliationResult> reconciliationResults) { this.reconciliationResults = reconciliationResults; }
 }

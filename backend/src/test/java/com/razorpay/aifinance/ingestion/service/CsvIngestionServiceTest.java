@@ -43,7 +43,7 @@ class CsvIngestionServiceTest {
     @Test
     void testMalformedAmountThrowsException() throws Exception {
         Files.writeString(tempDir.resolve("orders.csv"), "order_id,customer_id,order_date,amount,currency,status\n1,2,2026-08-27T00:00:00Z,NOT_A_NUMBER,USD,PAID");
-        
+
         CsvIngestionException e = assertThrows(CsvIngestionException.class, () -> {
             service.loadDataset(tempDir.toString());
         });

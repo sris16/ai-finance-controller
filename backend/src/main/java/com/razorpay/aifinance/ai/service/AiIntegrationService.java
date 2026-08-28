@@ -26,7 +26,7 @@ public class AiIntegrationService {
         request.setSettlementGrossAmount(result.getSettlementGrossAmount());
         request.setSettlementPresent(result.getSettlementPresent());
         request.setBankTransactionCount(result.getBankTransactionCount());
-        
+
         // Pass the deterministic explanation natively computed by the Java engine as baseline reasoning
         request.setExplanation(result.getExplanation());
 

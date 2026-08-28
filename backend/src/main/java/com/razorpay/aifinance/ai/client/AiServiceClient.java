@@ -30,7 +30,7 @@ public class AiServiceClient {
     public AiServiceClient(RestClient restClient) {
         this.restClient = restClient;
     }
-    
+
 
 
     public AiExplanationResponse getExplanation(AiExplanationRequest request) {

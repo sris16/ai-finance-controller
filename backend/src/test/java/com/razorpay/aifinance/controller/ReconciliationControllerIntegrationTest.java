@@ -43,7 +43,23 @@ class ReconciliationControllerIntegrationTest {
         mockMvc.perform(get("/api/reconciliation/results")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(100)));
+                .andExpect(jsonPath("$.content", hasSize(20)))
+                .andExpect(jsonPath("$.totalElements", is(100)));
+    }
+
+    @Test
+    void testGetResultsPaginationBounds() throws Exception {
+        mockMvc.perform(get("/api/reconciliation/results?page=-1&size=20")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/reconciliation/results?page=0&size=0")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/reconciliation/results?page=0&size=101")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -74,7 +90,8 @@ class ReconciliationControllerIntegrationTest {
         mockMvc.perform(get("/api/reconciliation/exceptions")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(20)));
+                .andExpect(jsonPath("$.content", hasSize(20)))
+                .andExpect(jsonPath("$.totalElements", is(20)));
     }
 
     @Test
@@ -82,8 +99,9 @@ class ReconciliationControllerIntegrationTest {
         mockMvc.perform(get("/api/reconciliation/exceptions/AMOUNT_MISMATCH")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(4)))
-                .andExpect(jsonPath("$[0].exceptionType", is(ExceptionType.AMOUNT_MISMATCH.name())));
+                .andExpect(jsonPath("$.content", hasSize(4)))
+                .andExpect(jsonPath("$.content[0].exceptionType", is(ExceptionType.AMOUNT_MISMATCH.name())))
+                .andExpect(jsonPath("$.totalElements", is(4)));
     }
 
     @Test

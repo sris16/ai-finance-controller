@@ -12,7 +12,10 @@ import java.time.Instant;
 import java.util.List;
 
 @Entity
-@Table(name = "reconciliation_results")
+@Table(name = "reconciliation_results", indexes = {
+    @Index(name = "idx_overall_status", columnList = "overall_status"),
+    @Index(name = "idx_exception_type", columnList = "exception_type")
+})
 public class ReconciliationResultEntity {
 
     @Id

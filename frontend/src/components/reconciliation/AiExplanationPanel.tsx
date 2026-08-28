@@ -31,10 +31,10 @@ export const AiExplanationPanel: React.FC<AiExplanationPanelProps> = ({ paymentI
   if (!requested) {
     return (
       <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-        <Button 
-          variant="outlined" 
-          color="secondary" 
-          startIcon={<Bot size={20} />} 
+        <Button
+          variant="outlined"
+          color="secondary"
+          startIcon={<Bot size={20} />}
           onClick={fetchExplanation}
           sx={{ py: 1.5, px: 4, borderRadius: 2 }}
         >
@@ -52,7 +52,7 @@ export const AiExplanationPanel: React.FC<AiExplanationPanelProps> = ({ paymentI
           <Typography variant="h6" sx={{ color: '#38bdf8', fontWeight: 700 }}>AI EXPLANATION</Typography>
         </Box>
         <Divider sx={{ mb: 2, borderColor: 'rgba(56, 189, 248, 0.1)' }} />
-        
+
         {loading ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2 }}>
             <CircularProgress size={20} color="secondary" />

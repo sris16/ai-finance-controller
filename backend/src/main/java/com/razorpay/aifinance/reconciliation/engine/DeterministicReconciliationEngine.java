@@ -71,7 +71,7 @@ public class DeterministicReconciliationEngine {
         result.setPaymentAmount(payment.getAmount());
         result.setPaymentStatus(payment.getStatus());
         result.setPaymentDate(payment.getPaymentDate());
-        
+
         // Populate Order Data
         if (order != null) {
             result.setOrderId(order.getOrderId());
@@ -96,20 +96,20 @@ public class DeterministicReconciliationEngine {
         result.setBankTransactionCount(bankTransactions.size());
         List<BankTransactionDetail> details = new ArrayList<>();
         BigDecimal totalBankAmount = BigDecimal.ZERO;
-        
+
         for (BankTransactionRecord btr : bankTransactions) {
             BankTransactionDetail detail = new BankTransactionDetail();
             detail.setAmount(btr.getAmount());
             detail.setStatus(btr.getStatus());
             detail.setDate(btr.getTransactionDate());
             details.add(detail);
-            
+
             if (btr.getAmount() != null) {
                 totalBankAmount = totalBankAmount.add(btr.getAmount());
             }
         }
         result.setBankTransactions(details);
-        
+
         if (!bankTransactions.isEmpty()) {
             BankTransactionRecord first = bankTransactions.get(0);
             result.setBankTransactionAmount(totalBankAmount);
@@ -147,9 +147,9 @@ public class DeterministicReconciliationEngine {
             result.setConfidenceScore(1.0);
             return;
         }
-        
+
         if (bankTransactions.isEmpty()) {
-            // Unspecified by precedence list, but let's assume it's also a serious error. 
+            // Unspecified by precedence list, but let's assume it's also a serious error.
             // In a real system we might have MISSING_BANK_TRANSACTION, but we'll stick to rules.
             // Let's rely on AMOUNT_MISMATCH if 0 amounts don't match, or just continue checks.
         }

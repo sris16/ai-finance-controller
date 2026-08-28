@@ -15,7 +15,12 @@ import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,28 +59,35 @@ public class ReconciliationService {
     }
 
     public ReconciliationReport getReport() {
-        List<ReconciliationResult> allResults = repository.findAll().stream()
-                .map(ReconciliationResultEntity::toDomain)
-                .collect(Collectors.toList());
-        return reporter.generateReport(allResults);
-    }
+        int total = (int) repository.count();
+        int matched = (int) repository.countByOverallStatus(ReconciliationStatus.MATCH);
+        int exceptions = (int) repository.countByOverallStatus(ReconciliationStatus.EXCEPTION);
 
-    public List<ReconciliationResult> getAllResults(ReconciliationStatus status, ExceptionType exceptionType) {
-        List<ReconciliationResultEntity> entities;
-
-        if (status != null && exceptionType != null) {
-            entities = repository.findByOverallStatus(status).stream()
-                    .filter(e -> e.getExceptionType() == exceptionType)
-                    .collect(Collectors.toList());
-        } else if (status != null) {
-            entities = repository.findByOverallStatus(status);
-        } else if (exceptionType != null) {
-            entities = repository.findByExceptionType(exceptionType);
-        } else {
-            entities = repository.findAll();
+        Map<ExceptionType, Integer> breakdown = new EnumMap<>(ExceptionType.class);
+        List<Object[]> exceptionCounts = repository.countExceptionsByType();
+        for (Object[] row : exceptionCounts) {
+            ExceptionType type = (ExceptionType) row[0];
+            Number count = (Number) row[1];
+            breakdown.put(type, count.intValue());
         }
 
-        return entities.stream().map(ReconciliationResultEntity::toDomain).collect(Collectors.toList());
+        return reporter.generateReport(total, matched, exceptions, breakdown);
+    }
+
+    public Page<ReconciliationResult> getAllResults(ReconciliationStatus status, ExceptionType exceptionType, Pageable pageable) {
+        Page<ReconciliationResultEntity> page;
+
+        if (status != null && exceptionType != null) {
+            page = repository.findByOverallStatusAndExceptionType(status, exceptionType, pageable);
+        } else if (status != null) {
+            page = repository.findByOverallStatus(status, pageable);
+        } else if (exceptionType != null) {
+            page = repository.findByExceptionType(exceptionType, pageable);
+        } else {
+            page = repository.findAll(pageable);
+        }
+
+        return page.map(ReconciliationResultEntity::toDomain);
     }
 
     public ReconciliationResult getResultByPaymentId(String paymentId) {

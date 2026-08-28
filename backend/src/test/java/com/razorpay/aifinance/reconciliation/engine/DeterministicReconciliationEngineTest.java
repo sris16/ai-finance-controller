@@ -59,7 +59,7 @@ class DeterministicReconciliationEngineTest {
         dataset.setPayments(Collections.singletonList(payment));
         dataset.setSettlements(Collections.singletonList(settlement));
         dataset.setBankTransactions(Collections.singletonList(bank));
-        
+
         return dataset;
     }
 
@@ -67,7 +67,7 @@ class DeterministicReconciliationEngineTest {
     void testNormalMatch() {
         FinancialDataset ds = createBaseDataset("pay_match");
         List<ReconciliationResult> results = engine.reconcile(ds);
-        
+
         assertEquals(1, results.size());
         ReconciliationResult res = results.get(0);
         assertEquals(ReconciliationStatus.MATCH, res.getOverallStatus());
