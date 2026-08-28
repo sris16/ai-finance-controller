@@ -30,8 +30,10 @@ export const checkAiServiceHealth = async (): Promise<HealthResponse> => {
   return response.data;
 };
 
-export const getReconciliationReport = async (): Promise<any> => {
-  const response = await backendClient.get('/api/reconciliation/report');
+export const getReconciliationReport = async (runId?: string): Promise<any> => {
+  const params: any = {};
+  if (runId) params.runId = runId;
+  const response = await backendClient.get('/api/reconciliation/report', { params });
   return response.data;
 };
 
@@ -43,21 +45,36 @@ export interface PaginatedResponse<T> {
   totalPages: number;
 }
 
-export const getReconciliationResults = async (status?: string, exceptionType?: string, page = 0, size = 20): Promise<PaginatedResponse<any>> => {
+export const getReconciliationResults = async (status?: string, exceptionType?: string, page = 0, size = 20, runId?: string): Promise<PaginatedResponse<any>> => {
   const params: any = { page, size };
   if (status && status !== 'ALL') params.status = status;
   if (exceptionType && exceptionType !== 'ALL') params.exceptionType = exceptionType;
+  if (runId) params.runId = runId;
 
   const response = await backendClient.get('/api/reconciliation/results', { params });
   return response.data;
 };
 
-export const getReconciliationResult = async (paymentId: string): Promise<any> => {
-  const response = await backendClient.get(`/api/reconciliation/results/${paymentId}`);
+export const getReconciliationResult = async (paymentId: string, runId?: string): Promise<any> => {
+  const params: any = {};
+  if (runId) params.runId = runId;
+  const response = await backendClient.get(`/api/reconciliation/results/${paymentId}`, { params });
   return response.data;
 };
 
-export const getAiExplanation = async (paymentId: string): Promise<any> => {
-  const response = await backendClient.get(`/api/reconciliation/results/${paymentId}/explanation`);
+export const getAiExplanation = async (paymentId: string, runId?: string): Promise<any> => {
+  const params: any = {};
+  if (runId) params.runId = runId;
+  const response = await backendClient.get(`/api/reconciliation/results/${paymentId}/explanation`, { params });
+  return response.data;
+};
+
+export const getReconciliationRuns = async (): Promise<any> => {
+  const response = await backendClient.get('/api/reconciliation/runs');
+  return response.data;
+};
+
+export const triggerReconciliationRun = async (): Promise<any> => {
+  const response = await backendClient.post('/api/reconciliation/runs');
   return response.data;
 };

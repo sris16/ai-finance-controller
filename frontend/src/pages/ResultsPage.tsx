@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, MenuItem, Select, FormControl, InputLabel, Chip, CircularProgress, Alert, TablePagination } from '@mui/material';
+import { Box, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, MenuItem, Select, FormControl, InputLabel, Chip, CircularProgress, Alert, TablePagination, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { getReconciliationResults } from '../services/api';
-import { ReconciliationResult, ExceptionType } from '../types/api';
+import { getReconciliationResults, getReconciliationRuns, triggerReconciliationRun } from '../services/api';
+import { ReconciliationResult, ExceptionType, ReconciliationRun } from '../types/api';
 
 export const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
   const [results, setResults] = useState<ReconciliationResult[]>([]);
+  const [runs, setRuns] = useState<ReconciliationRun[]>([]);
+  const [selectedRunId, setSelectedRunId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
+  const [triggering, setTriggering] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -17,11 +20,25 @@ export const ResultsPage: React.FC = () => {
   const [pageSize, setPageSize] = useState<number>(20);
   const [totalElements, setTotalElements] = useState<number>(0);
 
+  const fetchRuns = async () => {
+    try {
+      const data = await getReconciliationRuns();
+      setRuns(data);
+      if (data.length > 0 && !selectedRunId) {
+        // default to latest completed
+        const completedRun = data.find((r: ReconciliationRun) => r.status === 'COMPLETED');
+        if (completedRun) setSelectedRunId(completedRun.id);
+      }
+    } catch (err) {
+      console.error('Failed to fetch runs', err);
+    }
+  };
+
   const fetchResults = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getReconciliationResults(statusFilter, exceptionFilter, currentPage, pageSize);
+      const data = await getReconciliationResults(statusFilter, exceptionFilter, currentPage, pageSize, selectedRunId || undefined);
       setResults(data.content);
       setTotalElements(data.totalElements);
     } catch (err: any) {
@@ -31,26 +48,68 @@ export const ResultsPage: React.FC = () => {
     }
   };
 
+  const handleTriggerRun = async () => {
+    setTriggering(true);
+    try {
+      const newRun = await triggerReconciliationRun();
+      await fetchRuns();
+      setSelectedRunId(newRun.id);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to trigger run');
+    } finally {
+      setTriggering(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRuns();
+  }, []);
+
   useEffect(() => {
     fetchResults();
-  }, [statusFilter, exceptionFilter, currentPage, pageSize]);
+  }, [statusFilter, exceptionFilter, currentPage, pageSize, selectedRunId]);
 
   // Reset to page 0 when filters change
   useEffect(() => {
     setCurrentPage(0);
-  }, [statusFilter, exceptionFilter]);
+  }, [statusFilter, exceptionFilter, selectedRunId]);
 
   return (
     <Box>
       <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, color: 'text.primary' }}>
         Reconciliation Results
       </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Deterministic matching engine results.
-      </Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+        <Typography variant="body1" color="text.secondary">
+          Deterministic matching engine results.
+        </Typography>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleTriggerRun}
+          disabled={triggering}
+        >
+          {triggering ? <CircularProgress size={24} /> : 'Trigger New Batch'}
+        </Button>
+      </Box>
 
       <Card sx={{ mb: 4, bgcolor: 'background.paper' }}>
-        <CardContent sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+        <CardContent sx={{ display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+          <FormControl size="small" sx={{ minWidth: 250 }}>
+            <InputLabel>Reconciliation Run</InputLabel>
+            <Select
+              value={selectedRunId}
+              label="Reconciliation Run"
+              onChange={(e) => setSelectedRunId(e.target.value)}
+            >
+              {runs.map(run => (
+                <MenuItem key={run.id} value={run.id}>
+                  {new Date(run.executionTime).toLocaleString()} ({run.status})
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
           <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel>Status</InputLabel>
             <Select
@@ -114,7 +173,7 @@ export const ResultsPage: React.FC = () => {
                   key={row.paymentId}
                   hover
                   sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/reconciliation/${row.paymentId}`)}
+                  onClick={() => navigate(`/reconciliation/${row.paymentId}?runId=${selectedRunId}`)}
                 >
                   <TableCell>{row.paymentId}</TableCell>
                   <TableCell>

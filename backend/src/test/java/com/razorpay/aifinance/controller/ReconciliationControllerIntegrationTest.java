@@ -21,6 +21,19 @@ class ReconciliationControllerIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private com.razorpay.aifinance.repository.ReconciliationRunRepository runRepository;
+
+    @Autowired
+    private com.razorpay.aifinance.service.ReconciliationService reconciliationService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        if (runRepository.count() == 0) {
+            reconciliationService.executeReconciliationRun();
+        }
+    }
+
     @Test
     void testGetReport() throws Exception {
         mockMvc.perform(get("/api/reconciliation/report")

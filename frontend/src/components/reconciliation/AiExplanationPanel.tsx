@@ -6,9 +6,10 @@ import { AiExplanationResponse } from '../../types/api';
 
 interface AiExplanationPanelProps {
   paymentId: string;
+  runId?: string;
 }
 
-export const AiExplanationPanel: React.FC<AiExplanationPanelProps> = ({ paymentId }) => {
+export const AiExplanationPanel: React.FC<AiExplanationPanelProps> = ({ paymentId, runId }) => {
   const [explanation, setExplanation] = useState<AiExplanationResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +20,7 @@ export const AiExplanationPanel: React.FC<AiExplanationPanelProps> = ({ paymentI
     setError(null);
     setRequested(true);
     try {
-      const data = await getAiExplanation(paymentId);
+      const data = await getAiExplanation(paymentId, runId);
       setExplanation(data);
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'AI explanation is currently unavailable. The reconciliation result remains available.');

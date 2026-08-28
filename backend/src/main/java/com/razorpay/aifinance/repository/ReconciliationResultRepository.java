@@ -1,6 +1,7 @@
 package com.razorpay.aifinance.repository;
 
 import com.razorpay.aifinance.domain.entity.ReconciliationResultEntity;
+import com.razorpay.aifinance.domain.entity.ReconciliationRunEntity;
 import com.razorpay.aifinance.domain.enums.ExceptionType;
 import com.razorpay.aifinance.domain.enums.ReconciliationStatus;
 import org.springframework.data.domain.Page;
@@ -11,17 +12,25 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+import java.util.Optional;
+
 @Repository
 public interface ReconciliationResultRepository extends JpaRepository<ReconciliationResultEntity, String> {
 
-    Page<ReconciliationResultEntity> findByOverallStatus(ReconciliationStatus status, Pageable pageable);
+    Page<ReconciliationResultEntity> findByRun(ReconciliationRunEntity run, Pageable pageable);
 
-    Page<ReconciliationResultEntity> findByExceptionType(ExceptionType exceptionType, Pageable pageable);
+    Optional<ReconciliationResultEntity> findByRunAndPaymentId(ReconciliationRunEntity run, String paymentId);
 
-    Page<ReconciliationResultEntity> findByOverallStatusAndExceptionType(ReconciliationStatus status, ExceptionType exceptionType, Pageable pageable);
+    Page<ReconciliationResultEntity> findByRunAndOverallStatus(ReconciliationRunEntity run, ReconciliationStatus status, Pageable pageable);
 
-    long countByOverallStatus(ReconciliationStatus status);
+    Page<ReconciliationResultEntity> findByRunAndExceptionType(ReconciliationRunEntity run, ExceptionType exceptionType, Pageable pageable);
 
-    @Query("SELECT r.exceptionType, COUNT(r) FROM ReconciliationResultEntity r WHERE r.overallStatus = 'EXCEPTION' AND r.exceptionType IS NOT NULL GROUP BY r.exceptionType")
-    List<Object[]> countExceptionsByType();
+    Page<ReconciliationResultEntity> findByRunAndOverallStatusAndExceptionType(ReconciliationRunEntity run, ReconciliationStatus status, ExceptionType exceptionType, Pageable pageable);
+
+    long countByRun(ReconciliationRunEntity run);
+
+    long countByRunAndOverallStatus(ReconciliationRunEntity run, ReconciliationStatus status);
+
+    @Query("SELECT r.exceptionType, COUNT(r) FROM ReconciliationResultEntity r WHERE r.run = :run AND r.overallStatus = 'EXCEPTION' AND r.exceptionType IS NOT NULL GROUP BY r.exceptionType")
+    List<Object[]> countExceptionsByType(ReconciliationRunEntity run);
 }

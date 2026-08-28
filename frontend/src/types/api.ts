@@ -90,3 +90,16 @@ export interface AiExplanationResponse {
   exceptionType: ExceptionType;
   explanation: AiExplanation;
 }
+
+export enum RunStatus {
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+}
+
+export interface ReconciliationRun {
+  id: string;
+  executionTime: string;
+  status: RunStatus;
+  totalRecords: number;
+}

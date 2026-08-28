@@ -1,6 +1,8 @@
 package com.razorpay.aifinance.repository;
 
 import com.razorpay.aifinance.domain.entity.ReconciliationResultEntity;
+import com.razorpay.aifinance.domain.entity.ReconciliationRunEntity;
+import com.razorpay.aifinance.domain.enums.RunStatus;
 import com.razorpay.aifinance.domain.enums.ExceptionType;
 import com.razorpay.aifinance.domain.enums.ExpectedResult;
 import com.razorpay.aifinance.domain.enums.ReconciliationStatus;
@@ -24,9 +26,18 @@ public class ReconciliationResultRepositoryTest {
     @Autowired
     private ReconciliationResultRepository repository;
 
+    @Autowired
+    private ReconciliationRunRepository runRepository;
+
     @Test
     void testEntityMappingAndPersistence() {
+        ReconciliationRunEntity run = new ReconciliationRunEntity();
+        run.setExecutionTime(Instant.now());
+        run.setStatus(RunStatus.COMPLETED);
+        run = runRepository.save(run);
+
         ReconciliationResultEntity entity = new ReconciliationResultEntity();
+        entity.setRun(run);
         entity.setPaymentId("PAY123");
         entity.setOrderId("ORD123");
         entity.setOrderAmount(new BigDecimal("100.50"));
@@ -39,9 +50,9 @@ public class ReconciliationResultRepositoryTest {
         entity.setBankTransactions(List.of(tx1, tx2));
         entity.setBankTransactionCount(2);
 
-        repository.save(entity);
+        entity = repository.save(entity);
 
-        Optional<ReconciliationResultEntity> retrievedOpt = repository.findById("PAY123");
+        Optional<ReconciliationResultEntity> retrievedOpt = repository.findById(entity.getId());
         assertThat(retrievedOpt).isPresent();
         ReconciliationResultEntity retrieved = retrievedOpt.get();
 
@@ -55,29 +66,36 @@ public class ReconciliationResultRepositoryTest {
 
     @Test
     void testRepositoryFiltering() {
+        ReconciliationRunEntity run = new ReconciliationRunEntity();
+        run.setExecutionTime(Instant.now());
+        run.setStatus(RunStatus.COMPLETED);
+        run = runRepository.save(run);
+
         ReconciliationResultEntity e1 = new ReconciliationResultEntity();
+        e1.setRun(run);
         e1.setPaymentId("PAY1");
         e1.setOverallStatus(ReconciliationStatus.MATCH);
         e1.setExceptionType(ExceptionType.NONE);
 
         ReconciliationResultEntity e2 = new ReconciliationResultEntity();
+        e2.setRun(run);
         e2.setPaymentId("PAY2");
         e2.setOverallStatus(ReconciliationStatus.EXCEPTION);
         e2.setExceptionType(ExceptionType.AMOUNT_MISMATCH);
 
         repository.saveAll(List.of(e1, e2));
 
-        Page<ReconciliationResultEntity> matchPage = repository.findByOverallStatus(ReconciliationStatus.MATCH, PageRequest.of(0, 10));
+        Page<ReconciliationResultEntity> matchPage = repository.findByRunAndOverallStatus(run, ReconciliationStatus.MATCH, PageRequest.of(0, 10));
         List<ReconciliationResultEntity> matches = matchPage.getContent();
         assertThat(matches).hasSize(1);
         assertThat(matches.get(0).getPaymentId()).isEqualTo("PAY1");
 
-        Page<ReconciliationResultEntity> exceptionPage = repository.findByExceptionType(ExceptionType.AMOUNT_MISMATCH, PageRequest.of(0, 10));
+        Page<ReconciliationResultEntity> exceptionPage = repository.findByRunAndExceptionType(run, ExceptionType.AMOUNT_MISMATCH, PageRequest.of(0, 10));
         List<ReconciliationResultEntity> amountMismatches = exceptionPage.getContent();
         assertThat(amountMismatches).hasSize(1);
         assertThat(amountMismatches.get(0).getPaymentId()).isEqualTo("PAY2");
 
-        long matchCount = repository.countByOverallStatus(ReconciliationStatus.MATCH);
+        long matchCount = repository.countByRunAndOverallStatus(run, ReconciliationStatus.MATCH);
         assertThat(matchCount).isEqualTo(1);
     }
 }

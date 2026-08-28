@@ -14,11 +14,21 @@ import java.util.List;
 @Entity
 @Table(name = "reconciliation_results", indexes = {
     @Index(name = "idx_overall_status", columnList = "overall_status"),
-    @Index(name = "idx_exception_type", columnList = "exception_type")
+    @Index(name = "idx_exception_type", columnList = "exception_type"),
+    @Index(name = "idx_run_payment", columnList = "run_id, payment_id"),
+    @Index(name = "idx_run_overall_status", columnList = "run_id, overall_status"),
+    @Index(name = "idx_run_exception_type", columnList = "run_id, exception_type")
 })
 public class ReconciliationResultEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "run_id", nullable = false)
+    private ReconciliationRunEntity run;
+
     @Column(name = "payment_id")
     private String paymentId;
 
@@ -154,6 +164,12 @@ public class ReconciliationResultEntity {
     }
 
     // --- Getters & Setters ---
+
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
+
+    public ReconciliationRunEntity getRun() { return run; }
+    public void setRun(ReconciliationRunEntity run) { this.run = run; }
 
     public String getPaymentId() { return paymentId; }
     public void setPaymentId(String paymentId) { this.paymentId = paymentId; }

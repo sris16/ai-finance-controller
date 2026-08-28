@@ -3,8 +3,10 @@ package com.razorpay.aifinance.service;
 import com.razorpay.aifinance.ingestion.model.FinancialDataset;
 import com.razorpay.aifinance.ingestion.service.CsvIngestionService;
 import com.razorpay.aifinance.reconciliation.engine.DeterministicReconciliationEngine;
+import com.razorpay.aifinance.domain.entity.ReconciliationRunEntity;
 import com.razorpay.aifinance.reconciliation.reporting.ReconciliationReporter;
 import com.razorpay.aifinance.repository.ReconciliationResultRepository;
+import com.razorpay.aifinance.repository.ReconciliationRunRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -26,37 +28,45 @@ class ReconciliationServiceInitializationTest {
     private ReconciliationReporter reporter;
     @Mock
     private ReconciliationResultRepository repository;
+    @Mock
+    private ReconciliationRunRepository runRepository;
 
     private ReconciliationService service;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        service = new ReconciliationService(csvIngestionService, engine, reporter, repository);
+        service = new ReconciliationService(csvIngestionService, engine, reporter, repository, runRepository);
     }
 
     @Test
-    void testInitializeDataset_EmptyDatabase() {
-        when(repository.count()).thenReturn(0L);
+    void testExecuteReconciliationRun_Success() {
+        when(runRepository.save(any(ReconciliationRunEntity.class))).thenAnswer(i -> i.getArguments()[0]);
         when(csvIngestionService.loadDataset(any())).thenReturn(new FinancialDataset());
         when(engine.reconcile(any())).thenReturn(List.of(new com.razorpay.aifinance.domain.model.ReconciliationResult()));
 
-        service.initializeDataset();
+        service.executeReconciliationRun();
 
         verify(csvIngestionService, times(1)).loadDataset(any());
         verify(engine, times(1)).reconcile(any());
         verify(repository, times(1)).saveAll(any());
+        verify(runRepository, times(2)).save(any(ReconciliationRunEntity.class));
     }
 
     @Test
-    void testInitializeDataset_ExistingDatabaseDoesNotDuplicate() {
-        when(repository.count()).thenReturn(100L); // Data already exists
+    void testExecuteReconciliationRun_FailsGracefully() {
+        when(runRepository.save(any(ReconciliationRunEntity.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(csvIngestionService.loadDataset(any())).thenThrow(new RuntimeException("Ingestion failed"));
 
-        service.initializeDataset();
+        try {
+            service.executeReconciliationRun();
+        } catch (RuntimeException e) {
+            // expected
+        }
 
-        // Engine and ingestion should NOT be triggered
-        verify(csvIngestionService, never()).loadDataset(anyString());
+        verify(csvIngestionService, times(1)).loadDataset(any());
         verify(engine, never()).reconcile(any());
         verify(repository, never()).saveAll(any());
+        verify(runRepository, times(2)).save(any(ReconciliationRunEntity.class)); // Saved as IN_PROGRESS then FAILED
     }
 }

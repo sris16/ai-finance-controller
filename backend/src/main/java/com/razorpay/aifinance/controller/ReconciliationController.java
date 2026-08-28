@@ -1,5 +1,6 @@
 package com.razorpay.aifinance.controller;
 
+import com.razorpay.aifinance.domain.entity.ReconciliationRunEntity;
 import com.razorpay.aifinance.domain.enums.ExceptionType;
 import com.razorpay.aifinance.domain.enums.ReconciliationStatus;
 import com.razorpay.aifinance.domain.model.ReconciliationResult;
@@ -8,6 +9,7 @@ import com.razorpay.aifinance.service.ReconciliationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,13 +26,25 @@ public class ReconciliationController {
         this.aiIntegrationService = aiIntegrationService;
     }
 
+    @PostMapping("/runs")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ReconciliationRunEntity triggerRun() {
+        return reconciliationService.executeReconciliationRun();
+    }
+
+    @GetMapping("/runs")
+    public List<ReconciliationRunEntity> getRuns() {
+        return reconciliationService.getAllRuns();
+    }
+
     @GetMapping("/report")
-    public ReconciliationReport getReport() {
-        return reconciliationService.getReport();
+    public ReconciliationReport getReport(@RequestParam(required = false) String runId) {
+        return reconciliationService.getReport(runId);
     }
 
     @GetMapping("/results")
     public Page<ReconciliationResult> getResults(
+            @RequestParam(required = false) String runId,
             @RequestParam(required = false) ReconciliationStatus status,
             @RequestParam(required = false) ExceptionType exceptionType,
             @RequestParam(defaultValue = "0") int page,
@@ -44,40 +58,46 @@ public class ReconciliationController {
         }
 
         Pageable pageable = PageRequest.of(page, size);
-        return reconciliationService.getAllResults(status, exceptionType, pageable);
+        return reconciliationService.getAllResults(runId, status, exceptionType, pageable);
     }
 
     @GetMapping("/results/{paymentId}")
-    public ReconciliationResult getResultByPaymentId(@PathVariable String paymentId) {
-        return reconciliationService.getResultByPaymentId(paymentId);
+    public ReconciliationResult getResultByPaymentId(
+            @PathVariable String paymentId,
+            @RequestParam(required = false) String runId) {
+        return reconciliationService.getResultByPaymentId(runId, paymentId);
     }
 
     @GetMapping("/exceptions")
     public Page<ReconciliationResult> getExceptions(
+            @RequestParam(required = false) String runId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
         if (page < 0) throw new IllegalArgumentException("Page index must not be less than zero");
         if (size < 1 || size > 100) throw new IllegalArgumentException("Page size must be between 1 and 100");
 
-        return reconciliationService.getAllResults(ReconciliationStatus.EXCEPTION, null, PageRequest.of(page, size));
+        return reconciliationService.getAllResults(runId, ReconciliationStatus.EXCEPTION, null, PageRequest.of(page, size));
     }
 
     @GetMapping("/exceptions/{exceptionType}")
     public Page<ReconciliationResult> getExceptionsByType(
             @PathVariable ExceptionType exceptionType,
+            @RequestParam(required = false) String runId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
         if (page < 0) throw new IllegalArgumentException("Page index must not be less than zero");
         if (size < 1 || size > 100) throw new IllegalArgumentException("Page size must be between 1 and 100");
 
-        return reconciliationService.getAllResults(ReconciliationStatus.EXCEPTION, exceptionType, PageRequest.of(page, size));
+        return reconciliationService.getAllResults(runId, ReconciliationStatus.EXCEPTION, exceptionType, PageRequest.of(page, size));
     }
 
     @GetMapping("/results/{paymentId}/explanation")
-    public com.razorpay.aifinance.ai.dto.ReconciliationExplanationResponse getExplanation(@PathVariable String paymentId) {
-        ReconciliationResult result = reconciliationService.getResultByPaymentId(paymentId);
+    public com.razorpay.aifinance.ai.dto.ReconciliationExplanationResponse getExplanation(
+            @PathVariable String paymentId,
+            @RequestParam(required = false) String runId) {
+        ReconciliationResult result = reconciliationService.getResultByPaymentId(runId, paymentId);
         return aiIntegrationService.generateExplanation(result);
     }
 }

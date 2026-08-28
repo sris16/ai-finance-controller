@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Grid, CircularProgress, Alert, Chip, Divider, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button } from '@mui/material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { getReconciliationResult } from '../services/api';
 import { ReconciliationResult } from '../types/api';
@@ -9,6 +9,9 @@ import { AiExplanationPanel } from '../components/reconciliation/AiExplanationPa
 export const ResultDetailsPage: React.FC = () => {
   const { paymentId } = useParams<{ paymentId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const runId = queryParams.get('runId');
   const [result, setResult] = useState<ReconciliationResult | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +20,7 @@ export const ResultDetailsPage: React.FC = () => {
     const fetchDetails = async () => {
       setLoading(true);
       try {
-        const data = await getReconciliationResult(paymentId!);
+        const data = await getReconciliationResult(paymentId!, runId || undefined);
         setResult(data);
       } catch (err: any) {
         setError(err.response?.data?.message || err.message || 'Failed to fetch details');
@@ -145,7 +148,7 @@ export const ResultDetailsPage: React.FC = () => {
       </Grid>
 
       {/* AI EXPLANATION COMPONENT */}
-      <AiExplanationPanel paymentId={result.paymentId} />
+      <AiExplanationPanel paymentId={result.paymentId} runId={runId || undefined} />
 
     </Box>
   );
