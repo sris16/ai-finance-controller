@@ -65,9 +65,25 @@ export const ResultsPage: React.FC = () => {
     fetchRuns();
   }, []);
 
+  const selectedRunStatus = runs.find(r => r.id === selectedRunId)?.status;
+
   useEffect(() => {
-    fetchResults();
-  }, [statusFilter, exceptionFilter, currentPage, pageSize, selectedRunId]);
+    if (selectedRunStatus !== 'IN_PROGRESS') {
+      fetchResults();
+    }
+  }, [statusFilter, exceptionFilter, currentPage, pageSize, selectedRunId, selectedRunStatus]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (runs.some(r => r.status === 'IN_PROGRESS')) {
+      interval = setInterval(() => {
+        fetchRuns();
+      }, 2000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [runs]);
 
   // Reset to page 0 when filters change
   useEffect(() => {
@@ -87,7 +103,7 @@ export const ResultsPage: React.FC = () => {
           variant="contained"
           color="primary"
           onClick={handleTriggerRun}
-          disabled={triggering}
+          disabled={triggering || runs.some(r => r.status === 'IN_PROGRESS')}
         >
           {triggering ? <CircularProgress size={24} /> : 'Trigger New Batch'}
         </Button>
@@ -159,6 +175,13 @@ export const ResultsPage: React.FC = () => {
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <CircularProgress />
+                </TableCell>
+              </TableRow>
+            ) : selectedRunStatus === 'IN_PROGRESS' ? (
+              <TableRow>
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                  <CircularProgress sx={{ mb: 2 }} /><br/>
+                  <Typography color="text.secondary">Processing reconciliation batch... Please wait.</Typography>
                 </TableCell>
               </TableRow>
             ) : results.length === 0 ? (

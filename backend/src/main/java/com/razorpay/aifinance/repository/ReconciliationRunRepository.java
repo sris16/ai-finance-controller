@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface ReconciliationRunRepository extends JpaRepository<ReconciliationRunEntity, String> {
     
     Optional<ReconciliationRunEntity> findFirstByStatusOrderByExecutionTimeDesc(RunStatus status);
+
+    boolean existsByStatus(RunStatus status);
 }

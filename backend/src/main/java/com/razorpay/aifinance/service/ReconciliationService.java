@@ -14,7 +14,9 @@ import com.razorpay.aifinance.domain.entity.ReconciliationRunEntity;
 import com.razorpay.aifinance.domain.enums.RunStatus;
 import com.razorpay.aifinance.repository.ReconciliationResultRepository;
 import com.razorpay.aifinance.repository.ReconciliationRunRepository;
+import com.razorpay.aifinance.exception.ConcurrentExecutionException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Page;
@@ -25,6 +27,9 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.concurrent.Executor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class ReconciliationService {
@@ -35,6 +40,8 @@ public class ReconciliationService {
 
     private final ReconciliationResultRepository repository;
     private final ReconciliationRunRepository runRepository;
+    private final Executor executor;
+    private static final Logger logger = LoggerFactory.getLogger(ReconciliationService.class);
 
     @Value("${app.data.path}")
     private String dataPath;
@@ -43,27 +50,40 @@ public class ReconciliationService {
                                  DeterministicReconciliationEngine engine,
                                  ReconciliationReporter reporter,
                                  ReconciliationResultRepository repository,
-                                 ReconciliationRunRepository runRepository) {
+                                 ReconciliationRunRepository runRepository,
+                                 @Qualifier("reconciliationTaskExecutor") Executor executor) {
         this.csvIngestionService = csvIngestionService;
         this.engine = engine;
         this.reporter = reporter;
         this.repository = repository;
         this.runRepository = runRepository;
+        this.executor = executor;
     }
 
     public synchronized ReconciliationRunEntity executeReconciliationRun() {
+        if (runRepository.existsByStatus(RunStatus.IN_PROGRESS)) {
+            throw new ConcurrentExecutionException("A reconciliation run is already in progress.");
+        }
+
         ReconciliationRunEntity run = new ReconciliationRunEntity();
         run.setExecutionTime(Instant.now());
         run.setStatus(RunStatus.IN_PROGRESS);
         run = runRepository.save(run);
 
+        final String runId = run.getId();
+        executor.execute(() -> processReconciliationRun(runId));
+
+        return run;
+    }
+
+    private void processReconciliationRun(String runId) {
+        logger.info("Starting Async Run [{}]", runId);
+        ReconciliationRunEntity run = runRepository.findById(runId)
+                .orElseThrow(() -> new IllegalStateException("Run not found: " + runId));
+
         try {
             FinancialDataset dataset = csvIngestionService.loadDataset(dataPath);
             List<ReconciliationResult> results = engine.reconcile(dataset);
-
-            run.setTotalRecords(results.size());
-            run.setStatus(RunStatus.COMPLETED);
-            run = runRepository.save(run);
 
             final ReconciliationRunEntity finalRun = run;
             List<ReconciliationResultEntity> entities = results.stream()
@@ -75,11 +95,16 @@ public class ReconciliationService {
                     .collect(Collectors.toList());
 
             repository.saveAll(entities);
-            return run;
+
+            run.setTotalRecords(results.size());
+            run.setStatus(RunStatus.COMPLETED);
+            runRepository.save(run);
+
+            logger.info("Completed Async Run [{}]", runId);
         } catch (Exception e) {
+            logger.error("Async Run [{}] failed", runId, e);
             run.setStatus(RunStatus.FAILED);
             runRepository.save(run);
-            throw new RuntimeException("Reconciliation run failed", e);
         }
     }
 

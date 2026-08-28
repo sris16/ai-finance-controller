@@ -31,6 +31,13 @@ class ReconciliationControllerIntegrationTest {
     void setUp() {
         if (runRepository.count() == 0) {
             reconciliationService.executeReconciliationRun();
+            while (!runRepository.existsByStatus(com.razorpay.aifinance.domain.enums.RunStatus.COMPLETED)) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
     }
 

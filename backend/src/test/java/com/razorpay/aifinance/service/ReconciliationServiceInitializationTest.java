@@ -32,16 +32,34 @@ class ReconciliationServiceInitializationTest {
     private ReconciliationRunRepository runRepository;
 
     private ReconciliationService service;
+    private java.util.concurrent.Executor executor = Runnable::run;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        service = new ReconciliationService(csvIngestionService, engine, reporter, repository, runRepository);
+        service = new ReconciliationService(csvIngestionService, engine, reporter, repository, runRepository, executor);
+    }
+
+    @Test
+    void testExecuteReconciliationRun_ThrowsIfInProgress() {
+        when(runRepository.existsByStatus(com.razorpay.aifinance.domain.enums.RunStatus.IN_PROGRESS)).thenReturn(true);
+        try {
+            service.executeReconciliationRun();
+            org.junit.jupiter.api.Assertions.fail("Expected ConcurrentExecutionException");
+        } catch (com.razorpay.aifinance.exception.ConcurrentExecutionException e) {
+            // expected
+        }
     }
 
     @Test
     void testExecuteReconciliationRun_Success() {
-        when(runRepository.save(any(ReconciliationRunEntity.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(runRepository.existsByStatus(any())).thenReturn(false);
+        when(runRepository.save(any(ReconciliationRunEntity.class))).thenAnswer(i -> {
+            ReconciliationRunEntity run = (ReconciliationRunEntity) i.getArguments()[0];
+            if (run.getId() == null) run.setId("test-run-id");
+            return run;
+        });
+        when(runRepository.findById("test-run-id")).thenReturn(java.util.Optional.of(new ReconciliationRunEntity()));
         when(csvIngestionService.loadDataset(any())).thenReturn(new FinancialDataset());
         when(engine.reconcile(any())).thenReturn(List.of(new com.razorpay.aifinance.domain.model.ReconciliationResult()));
 
@@ -55,14 +73,16 @@ class ReconciliationServiceInitializationTest {
 
     @Test
     void testExecuteReconciliationRun_FailsGracefully() {
-        when(runRepository.save(any(ReconciliationRunEntity.class))).thenAnswer(i -> i.getArguments()[0]);
+        when(runRepository.existsByStatus(any())).thenReturn(false);
+        when(runRepository.save(any(ReconciliationRunEntity.class))).thenAnswer(i -> {
+            ReconciliationRunEntity run = (ReconciliationRunEntity) i.getArguments()[0];
+            if (run.getId() == null) run.setId("test-run-id");
+            return run;
+        });
+        when(runRepository.findById("test-run-id")).thenReturn(java.util.Optional.of(new ReconciliationRunEntity()));
         when(csvIngestionService.loadDataset(any())).thenThrow(new RuntimeException("Ingestion failed"));
 
-        try {
-            service.executeReconciliationRun();
-        } catch (RuntimeException e) {
-            // expected
-        }
+        service.executeReconciliationRun();
 
         verify(csvIngestionService, times(1)).loadDataset(any());
         verify(engine, never()).reconcile(any());
