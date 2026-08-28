@@ -29,3 +29,27 @@ export const checkAiServiceHealth = async (): Promise<HealthResponse> => {
   const response = await aiServiceClient.get<HealthResponse>('/health');
   return response.data;
 };
+
+export const getReconciliationReport = async (): Promise<any> => {
+  const response = await backendClient.get('/api/reconciliation/report');
+  return response.data;
+};
+
+export const getReconciliationResults = async (status?: string, exceptionType?: string): Promise<any[]> => {
+  const params: any = {};
+  if (status && status !== 'ALL') params.status = status;
+  if (exceptionType && exceptionType !== 'ALL') params.exceptionType = exceptionType;
+
+  const response = await backendClient.get('/api/reconciliation/results', { params });
+  return response.data;
+};
+
+export const getReconciliationResult = async (paymentId: string): Promise<any> => {
+  const response = await backendClient.get(`/api/reconciliation/results/${paymentId}`);
+  return response.data;
+};
+
+export const getAiExplanation = async (paymentId: string): Promise<any> => {
+  const response = await backendClient.get(`/api/reconciliation/results/${paymentId}/explanation`);
+  return response.data;
+};
