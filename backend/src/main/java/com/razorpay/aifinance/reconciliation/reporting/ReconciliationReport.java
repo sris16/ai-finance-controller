@@ -1,11 +1,9 @@
 package com.razorpay.aifinance.reconciliation.reporting;
 
 import com.razorpay.aifinance.domain.enums.ExceptionType;
-import com.razorpay.aifinance.domain.model.ReconciliationResult;
 
 import java.math.BigDecimal;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 public class ReconciliationReport {

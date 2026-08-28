@@ -14,12 +14,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-import java.net.SocketTimeoutException;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.*;
 
+@SuppressWarnings("null")
 class AiServiceClientTest {
 
     private AiServiceClient aiServiceClient;

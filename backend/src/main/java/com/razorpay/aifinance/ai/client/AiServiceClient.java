@@ -11,6 +11,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
 @Component
+@SuppressWarnings("null")
 public class AiServiceClient {
 
     private final RestClient restClient;
