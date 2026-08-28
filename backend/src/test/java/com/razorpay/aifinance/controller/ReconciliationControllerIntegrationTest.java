@@ -112,7 +112,7 @@ class ReconciliationControllerIntegrationTest {
                     com.razorpay.aifinance.ai.dto.AiExplanationResponse mockResponse = new com.razorpay.aifinance.ai.dto.AiExplanationResponse();
                     mockResponse.setPaymentId(request.getPaymentId());
                     if ("PAY0004".equals(request.getPaymentId())) {
-                        mockResponse.setSummary("Duplicate Bank Transactions Detected");
+                        mockResponse.setSummary("This transaction appears to be a MATCH.");
                         mockResponse.setReasoning("Found 2 transactions");
                         mockResponse.setRecommendedAction("Reverse duplicates");
                     } else if ("PAY0001".equals(request.getPaymentId())) {
@@ -132,9 +132,9 @@ class ReconciliationControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.paymentId", is("PAY0004")))
-                .andExpect(jsonPath("$.overallStatus", is(ExceptionType.DUPLICATE_TRANSACTION.name().equals("DUPLICATE_TRANSACTION") ? "EXCEPTION" : "EXCEPTION")))
+                .andExpect(jsonPath("$.overallStatus", is("EXCEPTION")))
                 .andExpect(jsonPath("$.exceptionType", is("DUPLICATE_TRANSACTION")))
-                .andExpect(jsonPath("$.explanation.summary", is("Duplicate Bank Transactions Detected")));
+                .andExpect(jsonPath("$.explanation.summary", is("This transaction appears to be a MATCH.")));
     }
 
     @Test

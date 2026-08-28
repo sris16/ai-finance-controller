@@ -4,6 +4,7 @@ from decimal import Decimal
 from app.models.enums import ReconciliationStatus, ExceptionType
 
 class ExplanationRequest(BaseModel):
+    model_config = {"extra": "ignore"}
     paymentId: str = Field(..., description="Unique identifier for the payment")
     overallStatus: ReconciliationStatus = Field(..., description="Reconciliation status (MATCH or EXCEPTION)")
     exceptionType: ExceptionType = Field(..., description="Exception categorization from deterministic engine")
@@ -11,7 +12,6 @@ class ExplanationRequest(BaseModel):
     settlementGrossAmount: Optional[Decimal] = None
     settlementPresent: Optional[bool] = None
     bankTransactionCount: Optional[int] = None
-    explanation: Optional[str] = None
 
 class ExplanationResponse(BaseModel):
     paymentId: str
