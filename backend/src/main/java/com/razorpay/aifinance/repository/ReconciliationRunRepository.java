@@ -13,4 +13,6 @@ public interface ReconciliationRunRepository extends JpaRepository<Reconciliatio
     Optional<ReconciliationRunEntity> findFirstByStatusOrderByExecutionTimeDesc(RunStatus status);
 
     boolean existsByStatus(RunStatus status);
+
+    java.util.List<ReconciliationRunEntity> findByStatus(RunStatus status);
 }
