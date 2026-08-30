@@ -1,7 +1,5 @@
 import json
 import openai
-from pydantic import BaseModel
-from typing import Optional
 from app.models.explanation import ExplanationResponse
 from app.utils.config import settings
 from app.services.llm.base import LLMProvider
@@ -13,11 +11,16 @@ from app.services.llm.exceptions import (
     AIProviderResponseError
 )
 
-class OpenAIProvider(LLMProvider):
+class GroqProvider(LLMProvider):
     def __init__(self):
-        if not settings.ai_api_key:
-            raise AIServiceUnavailableError("AI_API_KEY is not configured.")
-        self.client = openai.OpenAI(api_key=settings.ai_api_key, max_retries=1, timeout=15.0)
+        if not settings.groq_api_key:
+            raise AIServiceUnavailableError("GROQ_API_KEY is not configured.")
+        self.client = openai.OpenAI(
+            base_url="https://api.groq.com/openai/v1",
+            api_key=settings.groq_api_key,
+            max_retries=1,
+            timeout=15.0
+        )
         self.model = settings.ai_model
 
     def generate_explanation(self, evidence: dict) -> ExplanationResponse:
@@ -58,44 +61,53 @@ Keep explanations concise and useful:
 - summary: 1-2 sentences
 - reasoning: 2-5 sentences
 - recommendedAction: 1-3 sentences
+
+OUTPUT JSON FORMAT:
+You MUST output exactly a JSON object with the keys "summary", "reasoning", and "recommendedAction".
+Do not output anything else.
 """
         
-        # We explicitly omit the paymentId from the response class to allow the provider
-        # to generate only summary, reasoning, and recommendedAction. 
-        # Then we attach paymentId back.
-        class LLMExplanation(BaseModel):
-            summary: str
-            reasoning: str
-            recommendedAction: str
-            
         try:
-            completion = self.client.chat.completions.parse(
+            completion = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_instruction.strip()},
                     {"role": "user", "content": json.dumps(evidence)}
                 ],
-                response_format=LLMExplanation
+                response_format={"type": "json_object"}
             )
             
-            parsed = completion.choices[0].message.parsed
-            if not parsed:
-                raise AIProviderResponseError("LLM returned an empty or unparseable response.")
+            raw_response = completion.choices[0].message.content
+            if not raw_response:
+                raise AIProviderResponseError("LLM returned an empty response.")
+                
+            parsed = json.loads(raw_response)
+            
+            summary = parsed.get("summary")
+            reasoning = parsed.get("reasoning")
+            recommendedAction = parsed.get("recommendedAction")
+            
+            if not summary or not reasoning or not recommendedAction:
+                raise AIProviderResponseError("LLM returned a response missing required JSON fields.")
                 
             return ExplanationResponse(
                 paymentId=evidence.get("paymentId", ""),
-                summary=parsed.summary,
-                reasoning=parsed.reasoning,
-                recommendedAction=parsed.recommendedAction
+                summary=summary,
+                reasoning=reasoning,
+                recommendedAction=recommendedAction
             )
             
         except openai.AuthenticationError as e:
-            raise AIProviderAuthenticationError(f"OpenAI Authentication Failed.") from e
+            raise AIProviderAuthenticationError(f"Groq Authentication Failed.") from e
         except openai.RateLimitError as e:
-            raise AIProviderRateLimitError(f"OpenAI Rate Limit Exceeded.") from e
+            raise AIProviderRateLimitError(f"Groq Rate Limit Exceeded.") from e
         except openai.APITimeoutError as e:
-            raise AIProviderTimeoutError(f"OpenAI Request Timed Out.") from e
+            raise AIProviderTimeoutError(f"Groq Request Timed Out.") from e
         except (openai.APIError, openai.APIConnectionError) as e:
-            raise AIProviderResponseError(f"OpenAI API Error.") from e
+            import sys
+            print(f"DEBUG Groq API Error: {e}", file=sys.stderr)
+            raise AIProviderResponseError(f"Groq API Error.") from e
+        except json.JSONDecodeError as e:
+            raise AIProviderResponseError(f"Failed to parse LLM response as JSON.") from e
         except Exception as e:
             raise AIProviderResponseError(f"Unexpected LLM parsing error.") from e

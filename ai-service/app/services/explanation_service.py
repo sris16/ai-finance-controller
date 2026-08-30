@@ -1,7 +1,7 @@
 import json
 from decimal import Decimal
 from app.models.explanation import ExplanationRequest, ExplanationResponse
-from app.services.llm.openai_provider import OpenAIProvider
+from app.services.llm.groq_provider import GroqProvider
 
 class ExplanationService:
     @staticmethod
@@ -20,6 +20,6 @@ class ExplanationService:
 
     @staticmethod
     def generate_explanation(request: ExplanationRequest) -> ExplanationResponse:
-        provider = OpenAIProvider()
+        provider = GroqProvider()
         evidence = ExplanationService._prepare_evidence(request)
         return provider.generate_explanation(evidence)
