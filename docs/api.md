@@ -1,36 +1,41 @@
-# AI Finance Controller — API Documentation
+# API Documentation
 
 ## 1. API Overview
-The Reconciliation REST API provides a programmatic interface to the **Deterministic Reconciliation Engine**. It allows users to ingest synthetic financial datasets and retrieve structured reports, matched records, and classified exceptions. 
+The AI Finance Controller exposes a comprehensive RESTful API layer managing the end-to-end reconciliation lifecycle. The architecture utilizes a **Spring Boot Backend** for dataset management, deterministic reconciliation orchestration, and results pagination, and a **FastAPI Python AI Service** for LLM exception investigation.
 
-## 2. Base URL
-When running via Docker Compose:
-- **Backend API Base URL**: `http://localhost:8080`
-
-## 3. Architecture Flow
-The operational REST API follows a strict architectural pipeline designed for deterministic execution:
-1. **Client**: Submits an HTTP GET request.
-2. **REST Controller** (`ReconciliationController`): Handles routing, path variables, and payload structuring.
-3. **Reconciliation Service** (`ReconciliationService`): Initializes once at application startup. Proxies retrieval operations.
-4. **CSV Ingestion Service** (`CsvIngestionService`): Parses the `orders.csv`, `payments.csv`, `settlements.csv`, and `bank_transactions.csv` synthetic files.
-5. **Deterministic Reconciliation Engine** (`DeterministicReconciliationEngine`): Executes math and rule-based matching across all parsed records.
-6. **Reconciliation Reporter** (`ReconciliationReporter`): Aggregates results into high-level metrics.
-7. **JSON Response**: Returns the processed models securely.
-
-## 4. Ground Truth Separation
-**Important Note:** The operational API exclusively utilizes the deterministic reconciliation engine. The `ground_truth.csv` file provided in the dataset serves **only** as benchmark evaluation data. It is never invoked or referenced by the operational reconciliation flow to determine matches or exceptions. 
+All API responses are strictly JSON formatted (except for file uploads, which use `multipart/form-data`).
 
 ---
 
-## 5. Endpoints
+## 2. Base URLs
+When running via the provided Docker Compose environment:
 
-### 5.1 Health Endpoint
-Checks the operational status of the backend API.
-- **HTTP Method**: `GET`
-- **URL**: `/api/health`
-- **Parameters**: None
-- **Successful Status**: `200 OK`
-- **Response Structure**:
+* **Backend API**: `http://localhost:8080`
+* **AI Service API**: `http://localhost:8000`
+* **Frontend**: `http://localhost:3000`
+
+---
+
+## 3. Authentication & Scope
+> The current Buildathon implementation does not require production authentication or SSO. APIs are intended for the local/containerized demonstration environment. There is no real money movement or live payment gateway integration.
+
+---
+
+## 4. API Conventions
+* Standard HTTP methods (`GET`, `POST`) are used.
+* All successful responses return `200 OK` or `201 Created`.
+* Date and time fields are represented as ISO 8601 Strings (`Instant` representations in UTC).
+* Most GET requests returning lists of transactions are paginated using standard Spring `Page` objects.
+
+---
+
+## 5. Health API
+
+### Get Backend Health
+```http
+GET /api/health
+```
+**Response (200 OK)**
 ```json
 {
   "status": "UP",
@@ -39,13 +44,112 @@ Checks the operational status of the backend API.
 }
 ```
 
-### 5.2 Report Endpoint
-Retrieves the aggregated high-level reconciliation metrics and exception breakdown.
-- **HTTP Method**: `GET`
-- **URL**: `/api/reconciliation/report`
-- **Parameters**: None
-- **Successful Status**: `200 OK`
-- **Response Structure** (`ReconciliationReport`):
+### Get AI Service Health
+```http
+GET /health
+```
+*(Available directly on the AI service at `http://localhost:8000`)*
+
+---
+
+## 6. Dataset Management API
+
+Datasets act as the immutable source data for reconciliation runs. A dataset is assigned a unique UUID to trace exactly which file batch was used for any historical run.
+
+### Get All Datasets
+```http
+GET /api/datasets
+```
+**Response (200 OK)**
+Returns a list of all uploaded datasets.
+```json
+[
+  {
+    "id": "a812241a-08b1-4b4d-b8b2-24bb9135c61b",
+    "name": "September Synthetic Batch",
+    "uploadedAt": "2026-09-01T10:00:00Z"
+  }
+]
+```
+
+### Upload Dataset
+```http
+POST /api/datasets
+Content-Type: multipart/form-data
+```
+**Form Data Fields:**
+* `name` (String, required): Human-readable dataset name.
+* `orders` (File, required): `orders.csv`
+* `payments` (File, required): `payments.csv`
+* `settlements` (File, optional): `settlements.csv`
+* `bankTransactions` (File, optional): `bank_transactions.csv`
+
+**Response (201 Created)**
+```json
+{
+  "id": "a812241a-08b1-4b4d-b8b2-24bb9135c61b",
+  "name": "September Synthetic Batch",
+  "uploadedAt": "2026-09-01T10:00:00Z"
+}
+```
+
+---
+
+## 7. Reconciliation Run API
+
+A reconciliation run is an asynchronous execution of the deterministic matching engine against a specific dataset.
+
+### Trigger Reconciliation Run
+```http
+POST /api/reconciliation/runs?datasetId={datasetId}
+```
+**Query Parameters:**
+* `datasetId` (String, optional): The UUID of the uploaded dataset. If omitted, it falls back to the legacy configured local path.
+
+**Response (201 Created)**
+```json
+{
+  "id": "73062ca7-0a33-4f54-9bd5-b4aa53d1615a",
+  "executionTime": "2026-09-01T10:05:00Z",
+  "status": "IN_PROGRESS",
+  "totalRecords": null,
+  "datasetId": "a812241a-08b1-4b4d-b8b2-24bb9135c61b"
+}
+```
+
+### Get All Runs
+```http
+GET /api/reconciliation/runs
+```
+**Response (200 OK)**
+```json
+[
+  {
+    "id": "73062ca7-0a33-4f54-9bd5-b4aa53d1615a",
+    "executionTime": "2026-09-01T10:05:05Z",
+    "status": "COMPLETED",
+    "totalRecords": 100,
+    "datasetId": "a812241a-08b1-4b4d-b8b2-24bb9135c61b"
+  }
+]
+```
+**Run Status Enum (`status`):**
+* `IN_PROGRESS`: Execution currently running asynchronously.
+* `COMPLETED`: Run successfully finished and results persisted.
+* `FAILED`: An unrecoverable exception occurred during parsing or matching.
+
+---
+
+## 8. Reporting API
+
+### Get Operational Report
+```http
+GET /api/reconciliation/report?runId={runId}
+```
+**Query Parameters:**
+* `runId` (String, optional): UUID of the specific run. If omitted, targets a default operational view.
+
+**Response (200 OK)**
 ```json
 {
   "totalRecords": 100,
@@ -63,152 +167,115 @@ Retrieves the aggregated high-level reconciliation metrics and exception breakdo
 }
 ```
 
-### 5.3 Results Endpoint
-Retrieves all computed reconciliation results. Supports dynamic filtering via query parameters.
-- **HTTP Method**: `GET`
-- **URL**: `/api/reconciliation/results`
-- **Query Parameters (Optional)**: 
-  - `status` (Enum: `MATCH`, `EXCEPTION`)
-  - `exceptionType` (Enum: `NONE`, `AMOUNT_MISMATCH`, `MISSING_SETTLEMENT`, `DUPLICATE_TRANSACTION`, `DATE_ANOMALY`, `STATUS_MISMATCH`)
-- **Successful Status**: `200 OK`
-- **Error Status**: `400 Bad Request` (If an invalid enum is provided)
-- **Response Structure**: Array of `ReconciliationResult` objects.
+---
 
-### 5.4 Individual Result Endpoint
-Retrieves a specific reconciliation result by its unique Payment ID.
-- **HTTP Method**: `GET`
-- **URL**: `/api/reconciliation/results/{paymentId}`
-- **Path Parameters**: `paymentId` (String)
-- **Successful Status**: `200 OK`
-- **Error Status**: `404 Not Found` (If the payment ID does not exist)
-- **Response Example (Duplicate Transaction)**:
+## 9. Results API
+
+### Get Paginated Results
+```http
+GET /api/reconciliation/results?runId={runId}&status={status}&exceptionType={exceptionType}&page=0&size=20
+```
+**Query Parameters:**
+* `runId` (String, optional): UUID of the reconciliation run to scope results.
+* `status` (Enum, optional): `MATCH` or `EXCEPTION`.
+* `exceptionType` (Enum, optional): Filter by a specific exception type.
+* `page` (Integer, default 0): Page index.
+* `size` (Integer, default 20, max 100): Page size.
+
+**Response (200 OK)**
+Returns a Spring Data `Page<ReconciliationResult>`.
+
+### Get Specific Transaction Result
+```http
+GET /api/reconciliation/results/{paymentId}?runId={runId}
+```
+
+---
+
+## 10. Exception API
+
+### Get All Exceptions
+```http
+GET /api/reconciliation/exceptions?runId={runId}&page=0&size=20
+```
+
+### Get Exceptions by Type
+```http
+GET /api/reconciliation/exceptions/{exceptionType}?runId={runId}&page=0&size=20
+```
+
+**ExceptionType Enum values defined by the Deterministic Engine:**
+* `NONE`: Represents a clean match.
+* `AMOUNT_MISMATCH`: Payment amount diverges from order amount or calculated fees are incorrect.
+* `MISSING_SETTLEMENT`: A captured payment has no corresponding bank settlement.
+* `DUPLICATE_TRANSACTION`: Multiples of the same transaction ID exist.
+* `DATE_ANOMALY`: Dates across the lifecycle violate chronological rules (e.g., settlement before payment).
+* `STATUS_MISMATCH`: The gateway status contradicts the storefront status.
+
+---
+
+## 11. AI Investigation API
+
+> **Safety Boundary:** AI analysis does not determine the underlying reconciliation result. The deterministic reconciliation engine establishes financial truth; AI provides explanation and investigation assistance.
+
+### Generate AI Explanation
+```http
+GET /api/reconciliation/results/{paymentId}/explanation?runId={runId}
+```
+*Note: This route hits the Spring Boot backend, which seamlessly acts as a proxy/orchestrator to call the internal FastAPI AI service.*
+
+**Response (200 OK)**
 ```json
 {
-  "paymentId": "PAY0004",
-  "orderId": "ORD0004",
-  "orderAmount": 5748.95,
-  "orderStatus": "PAID",
-  "paymentAmount": 5748.95,
-  "paymentStatus": "CAPTURED",
-  "paymentDate": "2026-01-07T17:15:00Z",
-  "settlementPresent": true,
-  "settlementGrossAmount": 5748.95,
-  "settlementFee": 114.98,
-  "settlementNetAmount": 5633.97,
-  "settlementStatus": "SETTLED",
-  "settlementDate": "2026-01-09T17:15:00Z",
-  "bankTransactionCount": 2,
-  "bankTransactionAmount": 11267.94,
-  "bankTransactionStatus": "SUCCESS",
-  "bankTransactionDate": "2026-01-10T02:15:00Z",
-  "bankTransactions": [
-    {
-      "amount": 5633.97,
-      "status": "SUCCESS",
-      "date": "2026-01-10T02:15:00Z"
-    },
-    {
-      "amount": 5633.97,
-      "status": "SUCCESS",
-      "date": "2026-01-10T02:20:00Z"
-    }
-  ],
+  "paymentId": "pay_XYZ123",
   "overallStatus": "EXCEPTION",
-  "exceptionType": "DUPLICATE_TRANSACTION",
-  "explanation": "Multiple bank transactions (2) were found for payment PAY0004.",
-  "confidenceScore": 1.0
+  "exceptionType": "AMOUNT_MISMATCH",
+  "explanation": {
+    "paymentId": "pay_XYZ123",
+    "summary": "Gateway fee miscalculation caused an amount mismatch.",
+    "reasoning": "The order amount was $100.00, but the captured payment amount was $98.00 due to an unauthorized 2% gateway deduction applied before capture. This violates the gross-amount capturing rule.",
+    "recommendedAction": "Raise a ticket with the payment gateway regarding incorrect pre-capture deductions for this merchant account."
+  }
 }
 ```
 
-### 5.5 Exceptions Endpoint
-Retrieves only the reconciliation results classified as an exception.
-- **HTTP Method**: `GET`
-- **URL**: `/api/reconciliation/exceptions`
-- **Parameters**: None
-- **Successful Status**: `200 OK`
-- **Response Structure**: Array of `ReconciliationResult` objects where `overallStatus` is `EXCEPTION`.
-
-### 5.6 Exception-Type Endpoint
-Retrieves exceptions explicitly matching the requested exception type.
-- **HTTP Method**: `GET`
-- **URL**: `/api/reconciliation/exceptions/{exceptionType}`
-- **Path Parameters**: `exceptionType` (Valid enum string)
-- **Successful Status**: `200 OK`
-- **Error Status**: `400 Bad Request` (If the enum is invalid)
-- **Response Structure**: Array of `ReconciliationResult` objects.
-
 ---
 
-## 6. Response Models
+## 12. Error Contract
 
-### 6.1 ReconciliationResult
-The core output of the deterministic engine.
-* **`paymentId`**, **`orderId`**: Relational strings.
-* **`orderAmount`**, **`paymentAmount`**: `BigDecimal` standard monetary values.
-* **`orderStatus`**, **`paymentStatus`**: String domain flags.
-* **`paymentDate`**: ISO-8601 Timestamp (e.g. `2026-01-07T17:15:00Z`).
-* **`settlementPresent`**: Boolean flag. If `false`, subsequent settlement fields (`settlementGrossAmount`, etc.) will cleanly serialize as `null`.
-* **`bankTransactionCount`**: Count of recorded payouts.
-* **`bankTransactions`**: Array of underlying sub-transactions. Duplicates are strictly preserved as independent entries.
-* **`overallStatus`**: `MATCH` or `EXCEPTION`.
-* **`exceptionType`**: The explicit categorization enum.
-* **`explanation`**: A human-readable rule trace generated by the engine.
-* **`confidenceScore`**: Numeric threshold (`1.0` for rigid rule matching).
+When an error occurs, the API returns a structured JSON payload driven by the `GlobalExceptionHandler`.
 
----
-
-## 7. Exception Types
-When a transaction fails the deterministic check, it receives one of the following categorizations:
-- **`NONE`**: Perfectly reconciled payload (Status `MATCH`).
-- **`AMOUNT_MISMATCH`**: The expected `settlementGrossAmount` minus internal fees diverges structurally from the physical `bankTransactionAmount`.
-- **`MISSING_SETTLEMENT`**: The transaction was captured by the gateway but a corresponding banking settlement was never received (`settlementPresent = false`).
-- **`DUPLICATE_TRANSACTION`**: Multiple identical or linked bank payout events were attached to the exact same `paymentId`.
-- **`DATE_ANOMALY`**: Settlement timestamps fundamentally broke causal physics (e.g., settling temporally *before* a payment occurred).
-- **`STATUS_MISMATCH`**: The payload represents conflicting state graphs (e.g., Gateway denotes `FAILED` but Bank denotes `SETTLED`).
-
----
-
-## 8. Error Responses
-The API implements a `GlobalExceptionHandler` shielding clients from internal stack traces, system paths, or credential leakage. All errors are rendered as a clean JSON payload.
-
-**Example 404 (Missing Payment):**
+**Example: 400 Bad Request (Dataset Upload Failed)**
 ```json
 {
-  "timestamp": "2026-08-27T06:32:45.050Z",
-  "status": 404,
-  "error": "Not Found",
-  "message": "No reconciliation result found for payment PAY9999",
-  "path": "/api/reconciliation/results/PAY9999"
-}
-```
-
-**Example 400 (Invalid Enum):**
-```json
-{
-  "timestamp": "2026-08-27T06:32:45.088Z",
+  "timestamp": "2026-09-01T10:12:00.000Z",
   "status": 400,
   "error": "Bad Request",
-  "message": "Invalid parameter value: INVALID_EXCEPTION",
-  "path": "/api/reconciliation/exceptions/INVALID_EXCEPTION"
+  "message": "Required file 'orders.csv' is missing",
+  "path": "/api/datasets"
 }
 ```
 
+**Common HTTP Status Codes:**
+* `400 Bad Request`: Validation failure, missing parameters, or invalid enum value.
+* `404 Not Found`: Resource (e.g., payment ID, run ID) could not be located.
+* `409 Conflict`: Concurrent execution exception (e.g., trying to start a run while another is `IN_PROGRESS`).
+* `503 Service Unavailable`: The FastAPI AI Service could not be reached or timed out.
+* `500 Internal Server Error`: Unexpected system failure.
+
 ---
 
-## 9. Docker Usage & CLI Examples
-The application is preconfigured to load the synthetic benchmark dataset `/data` directly within its self-contained Docker runtime.
+## 13. End-to-End API Workflow
 
-**Starting the environment:**
-```bash
-docker compose up -d backend
-```
+1. **Upload Dataset:** `POST /api/datasets` -> Retrieves a Dataset UUID.
+2. **Start Run:** `POST /api/reconciliation/runs?datasetId={UUID}` -> Initiates async processing and retrieves a Run UUID.
+3. **Poll Run Status:** `GET /api/reconciliation/runs` -> Poll until status is `COMPLETED`.
+4. **Retrieve Metrics:** `GET /api/reconciliation/report?runId={UUID}` -> Fetch the operational summary.
+5. **View Exceptions:** `GET /api/reconciliation/exceptions?runId={UUID}` -> Paginate through mismatches.
+6. **Investigate Exception:** `GET /api/reconciliation/results/{paymentId}/explanation?runId={UUID}` -> Request an AI explanation.
 
-**Retrieving the benchmark report:**
-```bash
-curl -s http://localhost:8080/api/reconciliation/report
-```
+---
 
-**Querying specific exceptions:**
-```bash
-curl -s http://localhost:8080/api/reconciliation/exceptions/AMOUNT_MISMATCH
-```
+## 14. Ground-Truth Separation
+
+The deterministic engine algorithmically classifies matches and exceptions using pure business logic. A benchmark file (`ground_truth.csv`) may be present in the repository, but it is strictly utilized for **evaluation/testing** by the integration test suite. The operational API endpoints documented above do NOT consult the ground truth for decision-making.
