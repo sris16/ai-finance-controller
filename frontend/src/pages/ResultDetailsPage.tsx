@@ -229,7 +229,7 @@ export const ResultDetailsPage: React.FC = () => {
             <Card sx={{ height: '100%', position: 'relative' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-                  <Box sx={{ p: 1, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}><CreditCard size={20} color="#a1a1aa" /></Box>
+                  <Box sx={{ p: 1, bgcolor: 'action.hover', borderRadius: 2 }}><CreditCard size={20} color="inherit" /></Box>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Payment Gateway</Typography>
                 </Box>
                 <Stack spacing={2}>
@@ -237,7 +237,7 @@ export const ResultDetailsPage: React.FC = () => {
                     <Typography color="text.secondary" variant="body2">Amount</Typography>
                     <Typography variant="h6" sx={{ fontFamily: 'monospace' }}>{formatINR(result.paymentAmount)}</Typography>
                   </Box>
-                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.04)' }} />
+                  <Divider sx={{ borderColor: 'divider' }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography color="text.secondary" variant="body2">Status</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>{result.paymentStatus}</Typography>
@@ -256,7 +256,7 @@ export const ResultDetailsPage: React.FC = () => {
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-                  <Box sx={{ p: 1, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}><Receipt size={20} color="#a1a1aa" /></Box>
+                  <Box sx={{ p: 1, bgcolor: 'action.hover', borderRadius: 2 }}><Receipt size={20} color="inherit" /></Box>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Settlement</Typography>
                 </Box>
                 <Stack spacing={2}>
@@ -266,7 +266,7 @@ export const ResultDetailsPage: React.FC = () => {
                       {formatINR(result.settlementGrossAmount)}
                     </Typography>
                   </Box>
-                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.04)' }} />
+                  <Divider sx={{ borderColor: 'divider' }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography color="text.secondary" variant="body2">Status</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 500, color: result.settlementPresent ? 'inherit' : 'error.main' }}>
@@ -287,7 +287,7 @@ export const ResultDetailsPage: React.FC = () => {
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-                  <Box sx={{ p: 1, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}><Building2 size={20} color="#a1a1aa" /></Box>
+                  <Box sx={{ p: 1, bgcolor: 'action.hover', borderRadius: 2 }}><Building2 size={20} color="inherit" /></Box>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Bank Statement</Typography>
                 </Box>
                 <Stack spacing={2}>
@@ -297,7 +297,7 @@ export const ResultDetailsPage: React.FC = () => {
                       {formatINR(result.bankTransactionAmount)}
                     </Typography>
                   </Box>
-                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.04)' }} />
+                  <Divider sx={{ borderColor: 'divider' }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography color="text.secondary" variant="body2">Transactions Found</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 500, color: result.bankTransactionCount > 1 ? '#f59e0b' : 'inherit' }}>
@@ -324,7 +324,7 @@ export const ResultDetailsPage: React.FC = () => {
       {result.bankTransactions && result.bankTransactions.length > 0 && (
         <Card sx={{ mb: 4 }}>
           <CardContent sx={{ p: 0 }}>
-            <Box sx={{ px: 3, py: 2, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <Box sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Bank Transaction Entries</Typography>
             </Box>
             <TableContainer>

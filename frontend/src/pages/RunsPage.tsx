@@ -28,12 +28,12 @@ export const RunsPage: React.FC = () => {
     fetchRuns();
   }, []);
 
-  const getStatusColor = (status: string) => {
+    const getStatusColor = (status: string) => {
     switch (status) {
       case 'COMPLETED': return { color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', border: 'rgba(16, 185, 129, 0.2)' };
       case 'IN_PROGRESS': return { color: '#0ea5e9', bg: 'rgba(14, 165, 233, 0.1)', border: 'rgba(14, 165, 233, 0.2)' };
       case 'FAILED': return { color: '#f43f5e', bg: 'rgba(244, 63, 94, 0.1)', border: 'rgba(244, 63, 94, 0.2)' };
-      default: return { color: '#a1a1aa', bg: 'rgba(255,255,255,0.05)', border: 'rgba(255,255,255,0.1)' };
+      default: return { color: 'text.secondary', bg: 'action.hover', border: 'divider' };
     }
   };
 
@@ -51,9 +51,9 @@ export const RunsPage: React.FC = () => {
         </Box>
         <Button
           variant="contained"
+          color="primary"
           onClick={() => setModalOpen(true)}
           startIcon={<Play size={16} />}
-          sx={{ bgcolor: '#fafafa', color: '#09090b', '&:hover': { bgcolor: '#e4e4e7' } }}
         >
           New Run
         </Button>
@@ -101,7 +101,8 @@ export const RunsPage: React.FC = () => {
                           sx={{
                             bgcolor: style.bg,
                             color: style.color,
-                            border: `1px solid ${style.border}`,
+                            border: '1px solid',
+                            borderColor: style.border,
                             fontWeight: 700
                           }}
                         />

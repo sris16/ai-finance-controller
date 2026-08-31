@@ -47,7 +47,6 @@ export const DatasetsPage: React.FC = () => {
           color="primary"
           onClick={() => setModalOpen(true)}
           startIcon={<Plus size={16} />}
-          sx={{ bgcolor: '#fafafa', color: '#09090b', '&:hover': { bgcolor: '#e4e4e7' } }}
         >
           New Dataset
         </Button>

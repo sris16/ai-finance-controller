@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Box, AppBar, Toolbar, Typography, Container, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { Activity, LayoutDashboard, FileText, Database, Settings, Menu, Server } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { SettingsDrawer } from '../components/common/SettingsDrawer';
 
 const DRAWER_WIDTH = 260;
 
@@ -13,6 +15,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,7 +36,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   const drawer = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#09090b', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper', borderRight: '1px solid', borderColor: 'divider' }}>
       <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Box
           sx={{
@@ -64,11 +67,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               sx={{
                 mb: 0.5,
                 borderRadius: '6px',
-                bgcolor: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
-                color: isActive ? '#fff' : '#a1a1aa',
+                bgcolor: isActive ? 'action.selected' : 'transparent',
+                color: isActive ? 'text.primary' : 'text.secondary',
                 '&:hover': {
-                  bgcolor: 'rgba(255,255,255,0.04)',
-                  color: '#fff',
+                  bgcolor: 'action.hover',
+                  color: 'text.primary',
                 },
               }}
             >
@@ -82,8 +85,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         })}
       </List>
 
-      <Box sx={{ p: 3, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#a1a1aa' }}>
+      <Box sx={{ p: 3, borderTop: '1px solid', borderColor: 'divider' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
           <Server size={14} />
           <Typography variant="caption" sx={{ fontWeight: 500 }}>System: Online</Typography>
         </Box>
@@ -92,7 +95,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#09090b' }}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: 'background.default' }}>
       <Box
         component="nav"
         sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
@@ -122,7 +125,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       </Box>
 
       <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', width: { md: `calc(100% - ${DRAWER_WIDTH}px)` } }}>
-        <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'rgba(9, 9, 11, 0.8)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <AppBar position="sticky" elevation={0} sx={{ bgcolor: (t) => alpha(t.palette.background.default, 0.8), backdropFilter: 'blur(12px)', borderBottom: '1px solid', borderColor: 'divider' }}>
           <Toolbar sx={{ minHeight: '64px !important', px: { xs: 2, sm: 4 } }}>
             {isMobile && (
               <IconButton
@@ -130,15 +133,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 aria-label="open drawer"
                 edge="start"
                 onClick={handleDrawerToggle}
-                sx={{ mr: 2, color: '#a1a1aa' }}
+                sx={{ mr: 2, color: 'text.secondary' }}
               >
                 <Menu />
               </IconButton>
             )}
             <Box sx={{ flexGrow: 1 }} />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {/* Optional: Add user avatar or settings icon here */}
-              <IconButton size="small" sx={{ color: '#a1a1aa' }}>
+              <IconButton size="small" sx={{ color: 'text.secondary' }} onClick={() => setSettingsOpen(true)}>
                 <Settings size={20} />
               </IconButton>
             </Box>
@@ -149,6 +151,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           {children}
         </Container>
       </Box>
+      <SettingsDrawer open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </Box>
   );
 };

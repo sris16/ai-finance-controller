@@ -72,7 +72,6 @@ export const HomePage: React.FC = () => {
           color="primary"
           endIcon={<ArrowRight size={16} />}
           onClick={() => navigate('/reconciliation')}
-          sx={{ bgcolor: '#fafafa', color: '#09090b', '&:hover': { bgcolor: '#e4e4e7' } }}
         >
           View Records
         </Button>
@@ -82,13 +81,13 @@ export const HomePage: React.FC = () => {
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} sm={6} md={3}>
-          {renderKPI('Total Records', report?.totalRecords || 0, 'Processed transactions', <FileCheck2 size={20} />, '#a1a1aa')}
+          {renderKPI('Total Records', report?.totalRecords || 0, 'Processed transactions', <FileCheck2 size={20} />, 'text.secondary')}
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           {renderKPI('Matched', report?.matchedRecords || 0, `${report?.matchRate?.toFixed(1) || 0}% Match Rate`, <CheckCircle2 size={20} />, '#10b981')}
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          {renderKPI('Exceptions', report?.exceptionRecords || 0, `${report?.exceptionRate?.toFixed(1) || 0}% Exception Rate`, <AlertTriangle size={20} />, '#f43f5e')}
+          {renderKPI('Exceptions', report?.exceptionRecords || 0, `${report?.exceptionRate?.toFixed(1) || 0}% Exception Rate`, <AlertTriangle size={20} />, 'error.main')}
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -127,8 +126,8 @@ export const HomePage: React.FC = () => {
                       <XAxis type="number" hide />
                       <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#a1a1aa', fontSize: 12 }} width={180} />
                       <Tooltip
-                        cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                        contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px', color: '#fff' }}
+                        cursor={{ fill: 'rgba(128,128,128,0.1)' }}
+                        contentStyle={{ backgroundColor: 'var(--mui-palette-background-paper)', border: '1px solid var(--mui-palette-divider)', borderRadius: '8px', color: 'var(--mui-palette-text-primary)' }}
                       />
                       <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={24}>
                         {chartData.map((_entry, index) => (
@@ -152,11 +151,11 @@ export const HomePage: React.FC = () => {
             <CardContent sx={{ p: 3 }}>
               <Typography variant="h6" sx={{ mb: 3 }}>Breakdown Details</Typography>
               {loadingReport ? <CircularProgress /> : (
-                <Stack spacing={2} divider={<Divider sx={{ borderColor: 'rgba(255,255,255,0.04)' }} />}>
+                <Stack spacing={2} divider={<Divider sx={{ borderColor: 'divider' }} />}>
                   {chartData.map((item) => (
                     <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2" sx={{ color: '#e4e4e7' }}>{item.name}</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#f43f5e' }}>{item.count}</Typography>
+                      <Typography variant="body2" sx={{ color: 'text.primary' }}>{item.name}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: 'error.main' }}>{item.count}</Typography>
                     </Box>
                   ))}
                   {chartData.length === 0 && <Typography color="text.secondary">0 exceptions.</Typography>}

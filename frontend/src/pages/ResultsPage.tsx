@@ -6,6 +6,8 @@ import { ReconciliationResult, ExceptionType, ReconciliationRun } from '../types
 import { DatasetUploadModal } from '../components/reconciliation/DatasetUploadModal';
 import { Play } from 'lucide-react';
 import { formatINR } from '../utils/currency';
+import { useSettings } from '../context/SettingsContext';
+
 export const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
@@ -19,7 +21,7 @@ export const ResultsPage: React.FC = () => {
   const [exceptionFilter, setExceptionFilter] = useState<string>('ALL');
 
   const [currentPage, setCurrentPage] = useState<number>(0);
-  const [pageSize, setPageSize] = useState<number>(10);
+  const { pageSize, setPageSize, autoRefresh } = useSettings();
   const [totalElements, setTotalElements] = useState<number>(0);
 
   const fetchRuns = async () => {
@@ -68,7 +70,7 @@ export const ResultsPage: React.FC = () => {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (runs.some(r => r.status === 'IN_PROGRESS')) {
+    if (autoRefresh && runs.some(r => r.status === 'IN_PROGRESS')) {
       interval = setInterval(() => {
         fetchRuns();
       }, 2000);
@@ -76,7 +78,7 @@ export const ResultsPage: React.FC = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [runs]);
+  }, [runs, autoRefresh]);
 
   useEffect(() => {
     setCurrentPage(0);
@@ -103,7 +105,6 @@ export const ResultsPage: React.FC = () => {
           onClick={() => setModalOpen(true)}
           disabled={runs.some(r => r.status === 'IN_PROGRESS')}
           startIcon={runs.some(r => r.status === 'IN_PROGRESS') ? <CircularProgress size={16} /> : <Play size={16} />}
-          sx={{ bgcolor: '#fafafa', color: '#09090b', '&:hover': { bgcolor: '#e4e4e7' } }}
         >
           {runs.some(r => r.status === 'IN_PROGRESS') ? 'Running...' : 'New Run'}
         </Button>
@@ -111,7 +112,7 @@ export const ResultsPage: React.FC = () => {
 
       {/* Filters Bar */}
       <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
-        <FormControl size="small" sx={{ minWidth: 240, '& .MuiOutlinedInput-root': { bgcolor: '#121214' } }}>
+        <FormControl size="small" sx={{ minWidth: 240, '& .MuiOutlinedInput-root': { bgcolor: 'background.default' } }}>
           <InputLabel>Run ID</InputLabel>
           <Select value={selectedRunId} label="Run ID" onChange={(e) => setSelectedRunId(e.target.value)}>
             {runs.map(run => (
@@ -122,7 +123,7 @@ export const ResultsPage: React.FC = () => {
           </Select>
         </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 160, '& .MuiOutlinedInput-root': { bgcolor: '#121214' } }}>
+        <FormControl size="small" sx={{ minWidth: 160, '& .MuiOutlinedInput-root': { bgcolor: 'background.default' } }}>
           <InputLabel>Status</InputLabel>
           <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
             <MenuItem value="ALL">All Statuses</MenuItem>
@@ -131,7 +132,7 @@ export const ResultsPage: React.FC = () => {
           </Select>
         </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 240, '& .MuiOutlinedInput-root': { bgcolor: '#121214' } }}>
+        <FormControl size="small" sx={{ minWidth: 240, '& .MuiOutlinedInput-root': { bgcolor: 'background.default' } }}>
           <InputLabel>Exception Type</InputLabel>
           <Select value={exceptionFilter} label="Exception Type" onChange={(e) => setExceptionFilter(e.target.value)}>
             <MenuItem value="ALL">All Exceptions</MenuItem>
@@ -200,7 +201,9 @@ export const ResultsPage: React.FC = () => {
                         <Chip
                           label={row.exceptionType.replace(/_/g, ' ')}
                           size="small"
-                          sx={{ borderRadius: '4px', height: 24, fontSize: '0.7rem', bgcolor: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.2)' }}
+                          color="warning"
+                          variant="outlined"
+                          sx={{ borderRadius: '4px', height: 24, fontSize: '0.7rem' }}
                         />
                       ) : (
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>-</Typography>
@@ -227,7 +230,7 @@ export const ResultsPage: React.FC = () => {
             setCurrentPage(0);
           }}
           rowsPerPageOptions={[10, 25, 50, 100]}
-          sx={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+          sx={{ borderTop: '1px solid', borderColor: 'divider' }}
         />
       </Card>
 

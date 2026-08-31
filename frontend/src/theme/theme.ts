@@ -155,3 +155,115 @@ export const darkTheme = createTheme({
     },
   },
 });
+
+export const lightTheme = createTheme({
+  palette: {
+    mode: 'light',
+    primary: {
+      main: '#18181b', // zinc-900
+      light: '#3f3f46',
+      dark: '#09090b',
+      contrastText: '#ffffff',
+    },
+    secondary: {
+      main: '#3b82f6', // blue-500
+      light: '#60a5fa',
+      dark: '#2563eb',
+      contrastText: '#ffffff',
+    },
+    success: {
+      main: '#10b981',
+      light: '#34d399',
+      dark: '#059669',
+    },
+    error: {
+      main: '#f43f5e',
+      light: '#fb7185',
+      dark: '#e11d48',
+    },
+    warning: {
+      main: '#f59e0b',
+      light: '#fbbf24',
+      dark: '#d97706',
+    },
+    info: {
+      main: '#0ea5e9',
+    },
+    background: {
+      default: '#f4f4f5', // zinc-100
+      paper: '#ffffff',   // white
+    },
+    text: {
+      primary: '#09090b', // zinc-950
+      secondary: '#52525b', // zinc-600
+    },
+    divider: 'rgba(0, 0, 0, 0.08)',
+  },
+  typography: darkTheme.typography,
+  shape: darkTheme.shape,
+  components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          backgroundColor: '#f4f4f5',
+          color: '#09090b',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+        },
+      },
+    },
+    MuiButton: darkTheme.components?.MuiButton,
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+          backgroundColor: '#ffffff',
+          border: '1px solid rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
+          borderRadius: '10px',
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+        elevation1: {
+          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
+          padding: '16px',
+          color: '#27272a',
+          fontSize: '0.875rem',
+        },
+        head: {
+          color: '#52525b',
+          fontWeight: 600,
+          backgroundColor: '#f4f4f5',
+          textTransform: 'uppercase',
+          fontSize: '0.75rem',
+          letterSpacing: '0.05em',
+        },
+      },
+    },
+    MuiTableRow: {
+      styleOverrides: {
+        root: {
+          '&:last-child td, &:last-child th': {
+            borderBottom: 0,
+          },
+          '&.MuiTableRow-hover:hover': {
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+          }
+        },
+      },
+    },
+    MuiChip: darkTheme.components?.MuiChip,
+  },
+});
