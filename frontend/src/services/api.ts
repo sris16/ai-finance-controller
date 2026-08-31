@@ -65,7 +65,10 @@ export const getReconciliationResult = async (paymentId: string, runId?: string)
 export const getAiExplanation = async (paymentId: string, runId?: string): Promise<any> => {
   const params: any = {};
   if (runId) params.runId = runId;
-  const response = await backendClient.get(`/api/reconciliation/results/${paymentId}/explanation`, { params });
+  const response = await backendClient.get(`/api/reconciliation/results/${paymentId}/explanation`, {
+    params,
+    timeout: 20000
+  });
   return response.data;
 };
 
