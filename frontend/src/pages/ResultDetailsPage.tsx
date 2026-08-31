@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Card, CardContent, Grid, CircularProgress, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Stack } from '@mui/material';
+import { Box, Typography, Card, CardContent, Grid, CircularProgress, Chip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, Stack, Divider } from '@mui/material';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Receipt, Building2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CreditCard, Receipt, Building2, AlertCircle, CheckCircle2, AlertTriangle, CalendarDays } from 'lucide-react';
 import { getReconciliationResult } from '../services/api';
 import { ReconciliationResult } from '../types/api';
 import { AiExplanationPanel } from '../components/reconciliation/AiExplanationPanel';
+import { formatINR } from '../utils/currency';
 
 export const ResultDetailsPage: React.FC = () => {
   const { paymentId } = useParams<{ paymentId: string }>();
@@ -45,12 +46,136 @@ export const ResultDetailsPage: React.FC = () => {
     );
   }
 
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount == null) return '-';
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
-  };
-
   const isMatch = result.overallStatus === 'MATCH';
+
+  const renderExceptionImpact = () => {
+    if (isMatch || result.exceptionType === 'NONE') return null;
+
+    let content = null;
+
+    switch (result.exceptionType) {
+      case 'DUPLICATE_TRANSACTION':
+        const expected = result.settlementGrossAmount || result.paymentAmount;
+        const excess = result.bankTransactionAmount - expected;
+        const individualTxAmount = result.bankTransactionCount > 0 ? (result.bankTransactionAmount / result.bankTransactionCount) : 0;
+
+        content = (
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={4}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Expected Settlement</Typography>
+              <Typography variant="h5" sx={{ fontFamily: 'monospace' }}>{formatINR(expected)}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Total Credited ({result.bankTransactionCount} txs)</Typography>
+              <Typography variant="h5" color="error.main" sx={{ fontFamily: 'monospace' }}>{formatINR(result.bankTransactionAmount)}</Typography>
+              {result.bankTransactionCount > 1 && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                  ({formatINR(individualTxAmount)} × {result.bankTransactionCount})
+                </Typography>
+              )}
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Detected Excess</Typography>
+              <Typography variant="h5" color="warning.main" sx={{ fontFamily: 'monospace' }}>+{formatINR(excess)}</Typography>
+            </Grid>
+          </Grid>
+        );
+        break;
+
+      case 'AMOUNT_MISMATCH':
+        const diff = (result.settlementGrossAmount || 0) - result.paymentAmount;
+        content = (
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={4}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Payment Amount</Typography>
+              <Typography variant="h5" sx={{ fontFamily: 'monospace' }}>{formatINR(result.paymentAmount)}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Settlement Amount</Typography>
+              <Typography variant="h5" sx={{ fontFamily: 'monospace', color: diff < 0 ? 'error.main' : 'success.main' }}>
+                {formatINR(result.settlementGrossAmount)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Difference</Typography>
+              <Typography variant="h5" color={diff < 0 ? 'error.main' : 'warning.main'} sx={{ fontFamily: 'monospace' }}>
+                {diff > 0 ? '+' : ''}{formatINR(diff)}
+              </Typography>
+            </Grid>
+          </Grid>
+        );
+        break;
+
+      case 'MISSING_SETTLEMENT':
+        content = (
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Payment Amount</Typography>
+              <Typography variant="h5" sx={{ fontFamily: 'monospace' }}>{formatINR(result.paymentAmount)}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Settlement Status</Typography>
+              <Typography variant="h5" color="error.main" sx={{ fontWeight: 600 }}>NOT FOUND</Typography>
+            </Grid>
+          </Grid>
+        );
+        break;
+
+      case 'DATE_ANOMALY':
+        content = (
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={6}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Payment Date</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CalendarDays size={20} color="#a1a1aa" />
+                <Typography variant="h6">{new Date(result.paymentDate).toLocaleDateString()}</Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Settlement Date</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CalendarDays size={20} color="#f43f5e" />
+                <Typography variant="h6" color="error.main">{result.settlementDate ? new Date(result.settlementDate).toLocaleDateString() : 'Missing'}</Typography>
+              </Box>
+            </Grid>
+          </Grid>
+        );
+        break;
+
+      case 'STATUS_MISMATCH':
+        content = (
+          <Grid container spacing={3}>
+            <Grid item xs={12} sm={4}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Payment Status</Typography>
+              <Typography variant="h6">{result.paymentStatus}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Settlement Status</Typography>
+              <Typography variant="h6" color="warning.main">{result.settlementStatus || 'MISSING'}</Typography>
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <Typography color="text.secondary" variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>Bank Status</Typography>
+              <Typography variant="h6" color={result.bankTransactionStatus !== result.paymentStatus ? 'error.main' : 'inherit'}>
+                {result.bankTransactionStatus || '-'}
+              </Typography>
+            </Grid>
+          </Grid>
+        );
+        break;
+    }
+
+    return (
+      <Card sx={{ mb: 4, bgcolor: 'rgba(244, 63, 94, 0.03)', border: '1px solid rgba(244, 63, 94, 0.2)' }}>
+        <CardContent sx={{ p: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+            <AlertTriangle size={24} color="#f43f5e" />
+            <Typography variant="h6" color="error.main" sx={{ fontWeight: 700 }}>Exception Impact: {result.exceptionType.replace(/_/g, ' ')}</Typography>
+          </Box>
+          {content}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
@@ -92,6 +217,9 @@ export const ResultDetailsPage: React.FC = () => {
         </Typography>
       </Box>
 
+      {/* Exception Impact (If any) */}
+      {renderExceptionImpact()}
+
       {/* Deterministic Timeline */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h6" sx={{ mb: 2, color: 'text.primary' }}>Financial Lifecycle</Typography>
@@ -102,12 +230,22 @@ export const ResultDetailsPage: React.FC = () => {
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                   <Box sx={{ p: 1, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}><CreditCard size={20} color="#a1a1aa" /></Box>
-                  <Typography variant="subtitle1">Payment Gateway</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Payment Gateway</Typography>
                 </Box>
-                <Stack spacing={1.5}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" variant="body2">Status</Typography><Typography variant="body2" sx={{ fontWeight: 500 }}>{result.paymentStatus}</Typography></Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" variant="body2">Amount</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{formatCurrency(result.paymentAmount)}</Typography></Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" variant="body2">Order Amount</Typography><Typography variant="body2">{formatCurrency(result.orderAmount)}</Typography></Box>
+                <Stack spacing={2}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography color="text.secondary" variant="body2">Amount</Typography>
+                    <Typography variant="h6" sx={{ fontFamily: 'monospace' }}>{formatINR(result.paymentAmount)}</Typography>
+                  </Box>
+                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.04)' }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography color="text.secondary" variant="body2">Status</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{result.paymentStatus}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography color="text.secondary" variant="body2">Order Amount</Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>{formatINR(result.orderAmount)}</Typography>
+                  </Box>
                 </Stack>
               </CardContent>
             </Card>
@@ -119,12 +257,26 @@ export const ResultDetailsPage: React.FC = () => {
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                   <Box sx={{ p: 1, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}><Receipt size={20} color="#a1a1aa" /></Box>
-                  <Typography variant="subtitle1">Settlement</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Settlement</Typography>
                 </Box>
-                <Stack spacing={1.5}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" variant="body2">Status</Typography><Typography variant="body2" sx={{ fontWeight: 500 }}>{result.settlementPresent ? result.settlementStatus : 'MISSING'}</Typography></Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" variant="body2">Gross Amount</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{formatCurrency(result.settlementGrossAmount)}</Typography></Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" variant="body2">Net Amount</Typography><Typography variant="body2">{formatCurrency(result.settlementNetAmount)}</Typography></Box>
+                <Stack spacing={2}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography color="text.secondary" variant="body2">Gross Amount</Typography>
+                    <Typography variant="h6" sx={{ fontFamily: 'monospace', color: result.settlementPresent ? 'inherit' : 'text.disabled' }}>
+                      {formatINR(result.settlementGrossAmount)}
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.04)' }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography color="text.secondary" variant="body2">Status</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500, color: result.settlementPresent ? 'inherit' : 'error.main' }}>
+                      {result.settlementPresent ? result.settlementStatus : 'MISSING'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography color="text.secondary" variant="body2">Net Amount (Less Fees)</Typography>
+                    <Typography variant="body2" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>{formatINR(result.settlementNetAmount)}</Typography>
+                  </Box>
                 </Stack>
               </CardContent>
             </Card>
@@ -136,15 +288,29 @@ export const ResultDetailsPage: React.FC = () => {
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
                   <Box sx={{ p: 1, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}><Building2 size={20} color="#a1a1aa" /></Box>
-                  <Typography variant="subtitle1">Bank Statement</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>Bank Statement</Typography>
                 </Box>
-                <Stack spacing={1.5}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" variant="body2">Transactions Found</Typography><Typography variant="body2" sx={{ fontWeight: 500, color: result.bankTransactionCount > 1 ? '#f59e0b' : 'inherit' }}>{result.bankTransactionCount}</Typography></Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" variant="body2">Total Credited</Typography><Typography variant="body2" sx={{ fontWeight: 600 }}>{formatCurrency(result.bankTransactionAmount)}</Typography></Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}><Typography color="text.secondary" variant="body2">Reconciliation</Typography>
+                <Stack spacing={2}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography color="text.secondary" variant="body2">Total Credited</Typography>
+                    <Typography variant="h6" sx={{ fontFamily: 'monospace', color: result.bankTransactionCount > 0 ? 'inherit' : 'text.disabled' }}>
+                      {formatINR(result.bankTransactionAmount)}
+                    </Typography>
+                  </Box>
+                  <Divider sx={{ borderColor: 'rgba(255,255,255,0.04)' }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography color="text.secondary" variant="body2">Transactions Found</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 500, color: result.bankTransactionCount > 1 ? '#f59e0b' : 'inherit' }}>
+                      {result.bankTransactionCount}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography color="text.secondary" variant="body2">Reconciliation</Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       {isMatch ? <CheckCircle2 size={14} color="#10b981" /> : <AlertCircle size={14} color="#f43f5e" />}
-                      <Typography variant="body2" sx={{ color: isMatch ? '#10b981' : '#f43f5e', fontWeight: 600 }}>{isMatch ? 'MATCHED' : 'EXCEPTION'}</Typography>
+                      <Typography variant="body2" sx={{ color: isMatch ? '#10b981' : '#f43f5e', fontWeight: 600 }}>
+                        {isMatch ? 'MATCHED' : 'EXCEPTION'}
+                      </Typography>
                     </Box>
                   </Box>
                 </Stack>
@@ -179,7 +345,7 @@ export const ResultDetailsPage: React.FC = () => {
                           {tx.status}
                         </Typography>
                       </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 500 }}>{formatCurrency(tx.amount)}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 500, fontFamily: 'monospace' }}>{formatINR(tx.amount)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

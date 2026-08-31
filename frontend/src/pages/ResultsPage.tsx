@@ -5,7 +5,7 @@ import { getReconciliationResults, getReconciliationRuns } from '../services/api
 import { ReconciliationResult, ExceptionType, ReconciliationRun } from '../types/api';
 import { DatasetUploadModal } from '../components/reconciliation/DatasetUploadModal';
 import { Play } from 'lucide-react';
-
+import { formatINR } from '../utils/currency';
 export const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
@@ -86,10 +86,7 @@ export const ResultsPage: React.FC = () => {
     return status === 'MATCH' ? 'success' : 'error';
   };
 
-  const formatCurrency = (amount: number | null | undefined) => {
-    if (amount == null) return '-';
-    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
-  };
+
 
   return (
     <Box>
@@ -209,8 +206,8 @@ export const ResultsPage: React.FC = () => {
                         <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>-</Typography>
                       )}
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 500 }}>{formatCurrency(row.paymentAmount)}</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 500 }}>{formatCurrency(row.settlementGrossAmount)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 500 }}>{formatINR(row.paymentAmount)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 500 }}>{formatINR(row.settlementGrossAmount)}</TableCell>
                     <TableCell align="center">{row.bankTransactionCount}</TableCell>
                     <TableCell align="right" sx={{ color: 'text.secondary' }}>{(row.confidenceScore * 100).toFixed(0)}%</TableCell>
                   </TableRow>
