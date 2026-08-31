@@ -53,6 +53,9 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
+      args:
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL:-}
+        VITE_AI_SERVICE_URL: ${VITE_AI_SERVICE_URL:-}
     container_name: ai_finance_frontend
     restart: unless-stopped
     ports:

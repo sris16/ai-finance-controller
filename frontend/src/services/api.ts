@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { HealthResponse } from '../types/api';
 
-const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
-const AI_SERVICE_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || 'http://localhost:8000';
+const BACKEND_BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
+const AI_SERVICE_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || '/ai-api';
 
 export const backendClient = axios.create({
   baseURL: BACKEND_BASE_URL,

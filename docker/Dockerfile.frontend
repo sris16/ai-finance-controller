@@ -2,6 +2,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+ARG VITE_BACKEND_URL
+ARG VITE_AI_SERVICE_URL
+ENV VITE_BACKEND_URL=$VITE_BACKEND_URL
+ENV VITE_AI_SERVICE_URL=$VITE_AI_SERVICE_URL
+
 COPY frontend/package*.json ./
 RUN npm ci
 
@@ -12,9 +17,19 @@ RUN npm run build
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Custom nginx config for SPA routing
+# Custom nginx config for SPA routing and API proxying
 RUN echo 'server { \
     listen 80; \
+    location /api/ { \
+        proxy_pass http://backend:8080; \
+        proxy_set_header Host $host; \
+        proxy_set_header X-Real-IP $remote_addr; \
+    } \
+    location /ai-api/ { \
+        proxy_pass http://ai-service:8000/; \
+        proxy_set_header Host $host; \
+        proxy_set_header X-Real-IP $remote_addr; \
+    } \
     location / { \
         root /usr/share/nginx/html; \
         index index.html index.htm; \
