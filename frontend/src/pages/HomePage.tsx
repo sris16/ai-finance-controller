@@ -1,46 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography, Card, CardContent, Grid, Button, Stack, Alert, Divider, CircularProgress } from '@mui/material';
-import { Server, Cpu, Database, ArrowRight } from 'lucide-react';
+import { ArrowRight, CheckCircle2, AlertTriangle, FileCheck2, Server, Database, Cpu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { checkBackendHealth, checkAiServiceHealth, getReconciliationReport } from '../services/api';
 import { HealthResponse, ReconciliationReport } from '../types/api';
-import { StatusBadge } from '../components/common/StatusBadge';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const [backendHealth, setBackendHealth] = useState<HealthResponse | null>(null);
   const [aiHealth, setAiHealth] = useState<HealthResponse | null>(null);
-  const [loadingBackend, setLoadingBackend] = useState<boolean>(true);
-  const [loadingAi, setLoadingAi] = useState<boolean>(true);
-  const [backendError, setBackendError] = useState<string | null>(null);
-  const [aiError, setAiError] = useState<string | null>(null);
-
   const [report, setReport] = useState<ReconciliationReport | null>(null);
   const [loadingReport, setLoadingReport] = useState<boolean>(true);
   const [reportError, setReportError] = useState<string | null>(null);
 
   const fetchData = async () => {
-    setLoadingBackend(true); setLoadingAi(true); setLoadingReport(true);
-    setBackendError(null); setAiError(null); setReportError(null);
-
+    setLoadingReport(true);
+    setReportError(null);
     try {
-      const bRes = await checkBackendHealth();
-      setBackendHealth(bRes);
-    } catch (err: any) { setBackendError(err.message || 'Failed to reach backend service'); }
-    finally { setLoadingBackend(false); }
-
-    try {
-      const aiRes = await checkAiServiceHealth();
-      setAiHealth(aiRes);
-    } catch (err: any) { setAiError(err.message || 'Failed to reach AI service'); }
-    finally { setLoadingAi(false); }
-
-    try {
+      checkBackendHealth().then(setBackendHealth).catch(() => setBackendHealth(null));
+      checkAiServiceHealth().then(setAiHealth).catch(() => setAiHealth(null));
       const rep = await getReconciliationReport();
       setReport(rep);
-    } catch (err: any) { setReportError(err.message || 'Failed to fetch report'); }
-    finally { setLoadingReport(false); }
+    } catch (err: any) {
+      setReportError(err.message || 'Failed to fetch report');
+    } finally {
+      setLoadingReport(false);
+    }
   };
 
   useEffect(() => {
@@ -50,91 +36,101 @@ export const HomePage: React.FC = () => {
   const getExceptionChartData = () => {
     if (!report || !report.exceptionBreakdown) return [];
     return Object.entries(report.exceptionBreakdown).map(([key, value]) => ({
-      name: key,
+      name: key.replace(/_/g, ' '),
       count: value
-    })).filter(item => item.count > 0);
+    })).filter(item => item.count > 0).sort((a, b) => b.count - a.count);
   };
 
   const chartData = getExceptionChartData();
 
+  const renderKPI = (title: string, value: string | number, subtext: string, icon: React.ReactNode, colorClass: string) => (
+    <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="subtitle2" color="text.secondary">{title}</Typography>
+          <Box sx={{ color: colorClass }}>{icon}</Box>
+        </Box>
+        {loadingReport ? <CircularProgress size={24} sx={{ my: 1 }} /> : (
+          <Typography variant="h2" sx={{ mb: 1 }}>{value}</Typography>
+        )}
+        <Typography variant="body2" color="text.secondary">{subtext}</Typography>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <Box>
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <Box>
-          <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, color: 'text.primary' }}>
-            Reconciliation Dashboard
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 800, mb: 3 }}>
-            Overview of deterministic reconciliation results and AI integration status.
+          <Typography variant="h3" sx={{ mb: 1 }}>Reconciliation Overview</Typography>
+          <Typography variant="body1" color="text.secondary">
+            Deterministic results for the latest processing window.
           </Typography>
         </Box>
         <Button
           variant="contained"
           color="primary"
-          endIcon={<ArrowRight size={18} />}
+          endIcon={<ArrowRight size={16} />}
           onClick={() => navigate('/reconciliation')}
-          sx={{ py: 1.5, px: 3, fontWeight: 'bold' }}
+          sx={{ bgcolor: '#fafafa', color: '#09090b', '&:hover': { bgcolor: '#e4e4e7' } }}
         >
-          View All Results
+          View Records
         </Button>
       </Box>
 
-      {/* Metrics Cards */}
+      {reportError && <Alert severity="error" sx={{ mb: 4 }}>{reportError}</Alert>}
+
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={3}>
-          <Card sx={{ height: '100%', bgcolor: 'background.paper' }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>Total Records</Typography>
-              {loadingReport ? <CircularProgress size={24} /> :
-                <Typography variant="h3" sx={{ fontWeight: 700 }}>{report?.totalRecords || 0}</Typography>}
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6} md={3}>
+          {renderKPI('Total Records', report?.totalRecords || 0, 'Processed transactions', <FileCheck2 size={20} />, '#a1a1aa')}
         </Grid>
-        <Grid item xs={12} md={3}>
-          <Card sx={{ height: '100%', bgcolor: 'background.paper', borderColor: 'secondary.main', borderWidth: 1, borderStyle: 'solid' }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>Matches</Typography>
-              {loadingReport ? <CircularProgress size={24} /> :
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                  <Typography variant="h3" sx={{ fontWeight: 700, color: 'secondary.main' }}>{report?.matchedRecords || 0}</Typography>
-                  <Typography variant="subtitle1" color="secondary.light">({report?.matchRate?.toFixed(2)}%)</Typography>
-                </Box>}
-            </CardContent>
-          </Card>
+        <Grid item xs={12} sm={6} md={3}>
+          {renderKPI('Matched', report?.matchedRecords || 0, `${report?.matchRate?.toFixed(1) || 0}% Match Rate`, <CheckCircle2 size={20} />, '#10b981')}
         </Grid>
-        <Grid item xs={12} md={3}>
-          <Card sx={{ height: '100%', bgcolor: 'background.paper', borderColor: 'error.main', borderWidth: 1, borderStyle: 'solid' }}>
-            <CardContent>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>Exceptions</Typography>
-              {loadingReport ? <CircularProgress size={24} /> :
-                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                  <Typography variant="h3" sx={{ fontWeight: 700, color: 'error.main' }}>{report?.exceptionRecords || 0}</Typography>
-                  <Typography variant="subtitle1" color="error.light">({report?.exceptionRate?.toFixed(2)}%)</Typography>
-                </Box>}
+        <Grid item xs={12} sm={6} md={3}>
+          {renderKPI('Exceptions', report?.exceptionRecords || 0, `${report?.exceptionRate?.toFixed(1) || 0}% Exception Rate`, <AlertTriangle size={20} />, '#f43f5e')}
+        </Grid>
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>System Status</Typography>
+              <Stack spacing={1.5}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Server size={16} color={backendHealth ? '#10b981' : '#f43f5e'} />
+                  <Typography variant="body2" color="text.secondary">Engine: {backendHealth ? 'Online' : 'Offline'}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Cpu size={16} color={aiHealth ? '#10b981' : '#f43f5e'} />
+                  <Typography variant="body2" color="text.secondary">AI Service: {aiHealth ? 'Online' : 'Offline'}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Database size={16} color="#10b981" />
+                  <Typography variant="body2" color="text.secondary">Database: Online</Typography>
+                </Box>
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Exception Breakdown Chart */}
-      <Grid container spacing={3} sx={{ mb: 5 }}>
+      <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
-          <Card sx={{ height: '100%', bgcolor: 'background.paper' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 3 }}>Exception Breakdown</Typography>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 3 }}>Exception Distribution</Typography>
               {loadingReport ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}><CircularProgress /></Box>
-              ) : reportError ? (
-                <Alert severity="error">{reportError}</Alert>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 280 }}><CircularProgress /></Box>
               ) : chartData.length > 0 ? (
-                <Box sx={{ height: 300 }}>
+                <Box sx={{ height: 280 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 40 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} stroke="#9ca3af" tick={{ fontSize: 12 }} />
-                      <YAxis stroke="#9ca3af" />
-                      <Tooltip contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: 8, color: '#fff' }} />
-                      <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} layout="vertical">
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#a1a1aa', fontSize: 12 }} width={180} />
+                      <Tooltip
+                        cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                        contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: '8px', color: '#fff' }}
+                      />
+                      <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={24}>
                         {chartData.map((_entry, index) => (
                           <Cell key={`cell-${index}`} fill="#f43f5e" />
                         ))}
@@ -143,79 +139,29 @@ export const HomePage: React.FC = () => {
                   </ResponsiveContainer>
                 </Box>
               ) : (
-                <Typography variant="body1" color="text.secondary">No exceptions found.</Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 280, color: 'text.secondary' }}>
+                  No exceptions found. System is fully reconciled.
+                </Box>
               )}
             </CardContent>
           </Card>
         </Grid>
 
         <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%', bgcolor: 'background.paper' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ mb: 3 }}>Exception Summary</Typography>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 3 }}>Breakdown Details</Typography>
               {loadingReport ? <CircularProgress /> : (
-                <Stack spacing={2} divider={<Divider sx={{ borderColor: 'rgba(255,255,255,0.05)' }} />}>
+                <Stack spacing={2} divider={<Divider sx={{ borderColor: 'rgba(255,255,255,0.04)' }} />}>
                   {chartData.map((item) => (
                     <Box key={item.name} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>{item.name}</Typography>
-                      <Typography variant="body2" color="error.main" sx={{ fontWeight: 700 }}>{item.count}</Typography>
+                      <Typography variant="body2" sx={{ color: '#e4e4e7' }}>{item.name}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#f43f5e' }}>{item.count}</Typography>
                     </Box>
                   ))}
-                  {chartData.length === 0 && <Typography color="text.secondary">All clear.</Typography>}
+                  {chartData.length === 0 && <Typography color="text.secondary">0 exceptions.</Typography>}
                 </Stack>
               )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      <Typography variant="h5" sx={{ fontWeight: 700, mb: 3 }}>
-        System Microservices Verification
-      </Typography>
-
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%', backgroundColor: '#111827' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box sx={{ p: 1, borderRadius: 2, backgroundColor: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8' }}>
-                    <Server size={22} />
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>Spring Boot Backend</Typography>
-                </Box>
-                <StatusBadge label="Backend" isOnline={!!backendHealth} isLoading={loadingBackend} error={backendError} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%', backgroundColor: '#111827' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box sx={{ p: 1, borderRadius: 2, backgroundColor: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-                    <Cpu size={22} />
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>FastAPI AI Service</Typography>
-                </Box>
-                <StatusBadge label="AI Service" isOnline={!!aiHealth} isLoading={loadingAi} error={aiError} />
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%', backgroundColor: '#111827' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box sx={{ p: 1, borderRadius: 2, backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
-                    <Database size={22} />
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>PostgreSQL 16</Typography>
-                </Box>
-                <StatusBadge label="Postgres" isOnline={true} isLoading={false} />
-              </Box>
             </CardContent>
           </Card>
         </Grid>

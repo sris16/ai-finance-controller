@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, MenuItem, Select, FormControl, InputLabel, Chip, CircularProgress, Alert, TablePagination, Button } from '@mui/material';
+import { Box, Typography, Card, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, MenuItem, Select, FormControl, InputLabel, CircularProgress, Alert, TablePagination, Button, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { getReconciliationResults, getReconciliationRuns } from '../services/api';
 import { ReconciliationResult, ExceptionType, ReconciliationRun } from '../types/api';
 import { DatasetUploadModal } from '../components/reconciliation/DatasetUploadModal';
+import { Play } from 'lucide-react';
 
 export const ResultsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export const ResultsPage: React.FC = () => {
   const [exceptionFilter, setExceptionFilter] = useState<string>('ALL');
 
   const [currentPage, setCurrentPage] = useState<number>(0);
-  const [pageSize, setPageSize] = useState<number>(20);
+  const [pageSize, setPageSize] = useState<number>(10);
   const [totalElements, setTotalElements] = useState<number>(0);
 
   const fetchRuns = async () => {
@@ -26,7 +27,6 @@ export const ResultsPage: React.FC = () => {
       const data = await getReconciliationRuns();
       setRuns(data);
       if (data.length > 0 && !selectedRunId) {
-        // default to latest completed
         const completedRun = data.find((r: ReconciliationRun) => r.status === 'COMPLETED');
         if (completedRun) setSelectedRunId(completedRun.id);
       }
@@ -78,141 +78,147 @@ export const ResultsPage: React.FC = () => {
     };
   }, [runs]);
 
-  // Reset to page 0 when filters change
   useEffect(() => {
     setCurrentPage(0);
   }, [statusFilter, exceptionFilter, selectedRunId]);
 
+  const getStatusColor = (status: string) => {
+    return status === 'MATCH' ? 'success' : 'error';
+  };
+
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount == null) return '-';
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
+  };
+
   return (
     <Box>
-      <Typography variant="h3" sx={{ fontWeight: 800, mb: 1, color: 'text.primary' }}>
-        Reconciliation Results
-      </Typography>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Typography variant="body1" color="text.secondary">
-          Deterministic matching engine results.
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <Box>
+          <Typography variant="h3" sx={{ mb: 1 }}>Reconciliation Records</Typography>
+          <Typography variant="body1" color="text.secondary">
+            Deterministic results for all transactions in the current run.
+          </Typography>
+        </Box>
         <Button
           variant="contained"
           color="primary"
           onClick={() => setModalOpen(true)}
           disabled={runs.some(r => r.status === 'IN_PROGRESS')}
+          startIcon={runs.some(r => r.status === 'IN_PROGRESS') ? <CircularProgress size={16} /> : <Play size={16} />}
+          sx={{ bgcolor: '#fafafa', color: '#09090b', '&:hover': { bgcolor: '#e4e4e7' } }}
         >
-          {runs.some(r => r.status === 'IN_PROGRESS') ? <CircularProgress size={24} /> : 'Trigger New Batch'}
+          {runs.some(r => r.status === 'IN_PROGRESS') ? 'Running...' : 'New Run'}
         </Button>
       </Box>
 
-      <Card sx={{ mb: 4, bgcolor: 'background.paper' }}>
-        <CardContent sx={{ display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap' }}>
-          <FormControl size="small" sx={{ minWidth: 250 }}>
-            <InputLabel>Reconciliation Run</InputLabel>
-            <Select
-              value={selectedRunId}
-              label="Reconciliation Run"
-              onChange={(e) => setSelectedRunId(e.target.value)}
-            >
-              {runs.map(run => (
-                <MenuItem key={run.id} value={run.id}>
-                  {new Date(run.executionTime).toLocaleString()} ({run.status})
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+      {/* Filters Bar */}
+      <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
+        <FormControl size="small" sx={{ minWidth: 240, '& .MuiOutlinedInput-root': { bgcolor: '#121214' } }}>
+          <InputLabel>Run ID</InputLabel>
+          <Select value={selectedRunId} label="Run ID" onChange={(e) => setSelectedRunId(e.target.value)}>
+            {runs.map(run => (
+              <MenuItem key={run.id} value={run.id}>
+                {new Date(run.executionTime).toLocaleString()} ({run.status})
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
-          <FormControl size="small" sx={{ minWidth: 200 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={statusFilter}
-              label="Status"
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <MenuItem value="ALL">All Statuses</MenuItem>
-              <MenuItem value="MATCH">MATCH</MenuItem>
-              <MenuItem value="EXCEPTION">EXCEPTION</MenuItem>
-            </Select>
-          </FormControl>
+        <FormControl size="small" sx={{ minWidth: 160, '& .MuiOutlinedInput-root': { bgcolor: '#121214' } }}>
+          <InputLabel>Status</InputLabel>
+          <Select value={statusFilter} label="Status" onChange={(e) => setStatusFilter(e.target.value)}>
+            <MenuItem value="ALL">All Statuses</MenuItem>
+            <MenuItem value="MATCH">Matched</MenuItem>
+            <MenuItem value="EXCEPTION">Exception</MenuItem>
+          </Select>
+        </FormControl>
 
-          <FormControl size="small" sx={{ minWidth: 250 }}>
-            <InputLabel>Exception Type</InputLabel>
-            <Select
-              value={exceptionFilter}
-              label="Exception Type"
-              onChange={(e) => setExceptionFilter(e.target.value)}
-            >
-              <MenuItem value="ALL">All Exceptions</MenuItem>
-              {Object.keys(ExceptionType).map(key => (
-                <MenuItem key={key} value={key}>{key}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </CardContent>
-      </Card>
+        <FormControl size="small" sx={{ minWidth: 240, '& .MuiOutlinedInput-root': { bgcolor: '#121214' } }}>
+          <InputLabel>Exception Type</InputLabel>
+          <Select value={exceptionFilter} label="Exception Type" onChange={(e) => setExceptionFilter(e.target.value)}>
+            <MenuItem value="ALL">All Exceptions</MenuItem>
+            {Object.keys(ExceptionType).map(key => (
+              <MenuItem key={key} value={key}>{key.replace(/_/g, ' ')}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
 
       {error && <Alert severity="error" sx={{ mb: 4 }}>{error}</Alert>}
 
-      <TableContainer component={Paper} sx={{ bgcolor: 'background.paper' }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 'bold' }}>Payment ID</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Overall Status</TableCell>
-              <TableCell sx={{ fontWeight: 'bold' }}>Exception Type</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold' }}>Payment Amount</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold' }}>Settlement Amount</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 'bold' }}>Bank Txs</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 'bold' }}>Confidence</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
+      <Card>
+        <TableContainer sx={{ maxHeight: 600 }}>
+          <Table stickyHeader>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                  <CircularProgress />
-                </TableCell>
+                <TableCell>Payment ID</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Exception</TableCell>
+                <TableCell align="right">Payment Amt</TableCell>
+                <TableCell align="right">Settlement Amt</TableCell>
+                <TableCell align="center">Bank Txs</TableCell>
+                <TableCell align="right">Confidence</TableCell>
               </TableRow>
-            ) : selectedRunStatus === 'IN_PROGRESS' ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                  <CircularProgress sx={{ mb: 2 }} /><br/>
-                  <Typography color="text.secondary">Processing reconciliation batch... Please wait.</Typography>
-                </TableCell>
-              </TableRow>
-            ) : results.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
-                  No results found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              results.map((row) => (
-                <TableRow
-                  key={row.paymentId}
-                  hover
-                  sx={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/reconciliation/${row.paymentId}?runId=${selectedRunId}`)}
-                >
-                  <TableCell>{row.paymentId}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={row.overallStatus}
-                      color={row.overallStatus === 'MATCH' ? 'success' : 'error'}
-                      size="small"
-                    />
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                    <CircularProgress size={30} />
                   </TableCell>
-                  <TableCell>
-                    {row.exceptionType !== 'NONE' && (
-                      <Chip label={row.exceptionType} color="warning" size="small" variant="outlined" />
-                    )}
-                  </TableCell>
-                  <TableCell align="right">{row.paymentAmount?.toFixed(2)}</TableCell>
-                  <TableCell align="right">{row.settlementGrossAmount?.toFixed(2) || '-'}</TableCell>
-                  <TableCell align="center">{row.bankTransactionCount}</TableCell>
-                  <TableCell align="right">{(row.confidenceScore * 100).toFixed(0)}%</TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : selectedRunStatus === 'IN_PROGRESS' ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                    <CircularProgress sx={{ mb: 2 }} size={30} /><br/>
+                    <Typography color="text.secondary">Processing reconciliation batch...</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : results.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                    No records match the current filters.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                results.map((row) => (
+                  <TableRow
+                    key={row.paymentId}
+                    hover
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => navigate(`/reconciliation/${row.paymentId}?runId=${selectedRunId}`)}
+                  >
+                    <TableCell sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{row.paymentId}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={row.overallStatus}
+                        color={getStatusColor(row.overallStatus)}
+                        size="small"
+                        sx={{ borderRadius: '4px', height: 24, fontSize: '0.75rem', fontWeight: 700 }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {row.exceptionType !== 'NONE' ? (
+                        <Chip
+                          label={row.exceptionType.replace(/_/g, ' ')}
+                          size="small"
+                          sx={{ borderRadius: '4px', height: 24, fontSize: '0.7rem', bgcolor: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', border: '1px solid rgba(245, 158, 11, 0.2)' }}
+                        />
+                      ) : (
+                        <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>-</Typography>
+                      )}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 500 }}>{formatCurrency(row.paymentAmount)}</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 500 }}>{formatCurrency(row.settlementGrossAmount)}</TableCell>
+                    <TableCell align="center">{row.bankTransactionCount}</TableCell>
+                    <TableCell align="right" sx={{ color: 'text.secondary' }}>{(row.confidenceScore * 100).toFixed(0)}%</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
         <TablePagination
           component="div"
           count={totalElements}
@@ -223,9 +229,10 @@ export const ResultsPage: React.FC = () => {
             setPageSize(parseInt(e.target.value, 10));
             setCurrentPage(0);
           }}
-          rowsPerPageOptions={[5, 10, 20, 50, 100]}
+          rowsPerPageOptions={[10, 25, 50, 100]}
+          sx={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
         />
-      </TableContainer>
+      </Card>
 
       <DatasetUploadModal
         open={modalOpen}

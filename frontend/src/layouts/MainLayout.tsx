@@ -1,74 +1,153 @@
-import React from 'react';
-import { Box, AppBar, Toolbar, Typography, Container, Button } from '@mui/material';
-import { Activity, Terminal } from 'lucide-react';
+import React, { useState } from 'react';
+import { Box, AppBar, Toolbar, Typography, Container, Drawer, List, ListItem, ListItemIcon, ListItemText, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { Activity, LayoutDashboard, FileText, Database, Settings, Menu, Server } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+
+const DRAWER_WIDTH = 260;
 
 interface MainLayoutProps {
   children: React.ReactNode;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
-  return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'background.default' }}>
-      <AppBar position="static" elevation={0} sx={{ borderBottom: '1px solid rgba(255, 255, 255, 0.08)', backgroundColor: '#111827' }}>
-        <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, sm: 4 } }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <Box
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const menuItems = [
+    { text: 'Dashboard', icon: <LayoutDashboard size={20} />, path: '/' },
+    { text: 'Reconciliation', icon: <FileText size={20} />, path: '/reconciliation' },
+    { text: 'Datasets', icon: <Database size={20} />, path: '/datasets' },
+    { text: 'Runs', icon: <Activity size={20} />, path: '/runs' },
+  ];
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
+  const navigateTo = (path: string) => {
+    navigate(path);
+    if (isMobile) setMobileOpen(false);
+  };
+
+  const drawer = (
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: '#09090b', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box
+          sx={{
+            width: 32,
+            height: 32,
+            borderRadius: '8px',
+            background: 'linear-gradient(135deg, #e4e4e7 0%, #a1a1aa 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Activity size={18} color="#09090b" strokeWidth={2.5} />
+        </Box>
+        <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: '-0.5px' }}>
+          AI Finance
+        </Typography>
+      </Box>
+
+      <List sx={{ px: 2, flex: 1 }}>
+        {menuItems.map((item) => {
+          const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+          return (
+            <ListItem
+              button
+              key={item.text}
+              onClick={() => navigateTo(item.path)}
               sx={{
-                width: 36,
-                height: 36,
-                borderRadius: 2,
-                backgroundColor: 'primary.main',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 0 12px rgba(2, 132, 199, 0.5)',
+                mb: 0.5,
+                borderRadius: '6px',
+                bgcolor: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
+                color: isActive ? '#fff' : '#a1a1aa',
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.04)',
+                  color: '#fff',
+                },
               }}
             >
-              <Activity size={20} color="#ffffff" />
-            </Box>
-            <Box>
-              <Typography variant="h6" sx={{ color: 'text.primary', lineHeight: 1.2, fontWeight: 700 }}>
-                AI Finance Controller
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'primary.light', fontWeight: 600 }}>
-                Razorpay Buildathon 2026 — Track 04
-              </Typography>
-            </Box>
-          </Box>
+              <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>{item.icon}</ListItemIcon>
+              <ListItemText
+                primary={item.text}
+                primaryTypographyProps={{ fontSize: '0.9rem', fontWeight: isActive ? 600 : 500 }}
+              />
+            </ListItem>
+          );
+        })}
+      </List>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<Terminal size={16} />}
-              sx={{ borderColor: 'rgba(255, 255, 255, 0.15)', color: 'text.secondary' }}
-              href="file:///home/srisakthi/Projects/ai-finance-controller/docs/architecture.md"
-              target="_blank"
-            >
-              Architecture Docs
-            </Button>
-          </Box>
-        </Toolbar>
-      </AppBar>
+      <Box sx={{ p: 3, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#a1a1aa' }}>
+          <Server size={14} />
+          <Typography variant="caption" sx={{ fontWeight: 500 }}>System: Online</Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
 
-      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 4 }}>
-        {children}
-      </Container>
-
+  return (
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#09090b' }}>
       <Box
-        component="footer"
-        sx={{
-          py: 2.5,
-          px: 3,
-          mt: 'auto',
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-          backgroundColor: '#0b0f19',
-          textAlign: 'center',
-        }}
+        component="nav"
+        sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
       >
-        <Typography variant="body2" color="text.secondary">
-          AI Finance Controller — Track 04: Multi-Source Reconciliation Agent | Phase 1 Foundation Active
-        </Typography>
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH, border: 'none' },
+          }}
+        >
+          {drawer}
+        </Drawer>
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: DRAWER_WIDTH, border: 'none' },
+          }}
+          open
+        >
+          {drawer}
+        </Drawer>
+      </Box>
+
+      <Box component="main" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', width: { md: `calc(100% - ${DRAWER_WIDTH}px)` } }}>
+        <AppBar position="sticky" elevation={0} sx={{ bgcolor: 'rgba(9, 9, 11, 0.8)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <Toolbar sx={{ minHeight: '64px !important', px: { xs: 2, sm: 4 } }}>
+            {isMobile && (
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2, color: '#a1a1aa' }}
+              >
+                <Menu />
+              </IconButton>
+            )}
+            <Box sx={{ flexGrow: 1 }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* Optional: Add user avatar or settings icon here */}
+              <IconButton size="small" sx={{ color: '#a1a1aa' }}>
+                <Settings size={20} />
+              </IconButton>
+            </Box>
+          </Toolbar>
+        </AppBar>
+
+        <Container maxWidth="xl" sx={{ flexGrow: 1, py: { xs: 3, md: 5 }, px: { xs: 2, sm: 4 } }}>
+          {children}
+        </Container>
       </Box>
     </Box>
   );
