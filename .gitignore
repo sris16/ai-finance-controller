@@ -49,3 +49,7 @@ postgres_data/
 
 # OS Generated
 Thumbs.db
+
+# Runtime uploaded reconciliation datasets
+data/datasets/*
+!data/datasets/.gitkeep

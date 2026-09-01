@@ -61,7 +61,7 @@ public class DatasetService {
 
         String datasetId = UUID.randomUUID().toString();
 
-        Path tempDir = Paths.get(System.getProperty("java.io.tmpdir")).resolve("dataset_" + datasetId);
+        Path tempDir = datasetsRootPath.resolve(".tmp_dataset_" + datasetId);
         Path finalDir = datasetsRootPath.resolve(datasetId);
 
         try {
