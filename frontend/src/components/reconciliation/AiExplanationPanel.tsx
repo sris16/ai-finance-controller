@@ -4,6 +4,7 @@ import { Sparkles, ShieldCheck, AlertCircle } from 'lucide-react';
 import { getAiExplanation } from '../../services/api';
 import { AiExplanationResponse } from '../../types/api';
 import { useSettings } from '../../context/SettingsContext';
+import { AudioReadButton } from '../common/AudioReadButton';
 
 interface AiExplanationPanelProps {
   paymentId: string;
@@ -106,13 +107,19 @@ export const AiExplanationPanel: React.FC<AiExplanationPanelProps> = ({ paymentI
             <Grid item xs={12} md={8}>
               <Stack spacing={3}>
                 <Box>
-                  <Typography variant="overline" sx={{ color: 'info.main', fontWeight: 700, letterSpacing: '1px' }}>Summary</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="overline" sx={{ color: 'info.main', fontWeight: 700, letterSpacing: '1px', lineHeight: 1 }}>Summary</Typography>
+                    <AudioReadButton text={explanation.explanation.summary} />
+                  </Box>
                   <Typography variant="body1" sx={{ color: 'text.primary', mt: 1, fontSize: '1.05rem' }}>
                     {explanation.explanation.summary}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography variant="overline" sx={{ color: 'info.main', fontWeight: 700, letterSpacing: '1px' }}>Reasoning</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Typography variant="overline" sx={{ color: 'info.main', fontWeight: 700, letterSpacing: '1px', lineHeight: 1 }}>Reasoning</Typography>
+                    <AudioReadButton text={explanation.explanation.reasoning} />
+                  </Box>
                   <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1, lineHeight: 1.6 }}>
                     {explanation.explanation.reasoning}
                   </Typography>
@@ -121,9 +128,12 @@ export const AiExplanationPanel: React.FC<AiExplanationPanelProps> = ({ paymentI
             </Grid>
             <Grid item xs={12} md={4}>
               <Box sx={{ p: 3, bgcolor: 'action.hover', borderRadius: '8px', border: '1px solid', borderColor: 'divider', height: '100%' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                  <AlertCircle size={18} color="#fbbf24" />
-                  <Typography variant="subtitle2" sx={{ color: 'warning.main', fontWeight: 700 }}>RECOMMENDED ACTION</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <AlertCircle size={18} color="#fbbf24" />
+                    <Typography variant="subtitle2" sx={{ color: 'warning.main', fontWeight: 700 }}>RECOMMENDED ACTION</Typography>
+                  </Box>
+                  <AudioReadButton text={explanation.explanation.recommendedAction} />
                 </Box>
                 <Typography variant="body2" sx={{ color: 'text.primary', lineHeight: 1.6 }}>
                   {explanation.explanation.recommendedAction}

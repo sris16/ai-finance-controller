@@ -1,13 +1,17 @@
 import React, { useMemo } from 'react';
-import { ThemeProvider, CssBaseline, useMediaQuery } from '@mui/material';
+import { ThemeProvider, CssBaseline, useMediaQuery, Box } from '@mui/material';
 import { BrowserRouter } from 'react-router-dom';
 import { darkTheme, lightTheme } from './theme/theme';
 import { AppRoutes } from './routes/AppRoutes';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
+import { AuthProvider } from './context/AuthContext';
+
+import { StartupSplash } from './components/StartupSplash';
 
 const AppContent: React.FC = () => {
   const { theme } = useSettings();
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
+  const [showSplash, setShowSplash] = React.useState(true);
 
   const currentTheme = useMemo(() => {
     if (theme === 'system') {
@@ -19,9 +23,12 @@ const AppContent: React.FC = () => {
   return (
     <ThemeProvider theme={currentTheme}>
       <CssBaseline />
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
+      {showSplash && <StartupSplash onComplete={() => setShowSplash(false)} />}
+      <Box sx={{ display: showSplash ? 'none' : 'block', height: '100vh' }}>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </Box>
     </ThemeProvider>
   );
 };
@@ -29,7 +36,9 @@ const AppContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <SettingsProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </SettingsProvider>
   );
 };
