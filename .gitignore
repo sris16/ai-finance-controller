@@ -38,6 +38,7 @@ __pycache__/
 .venv/
 env/
 venv/
+venv2
 ENV/
 .pytest_cache/
 .coverage
